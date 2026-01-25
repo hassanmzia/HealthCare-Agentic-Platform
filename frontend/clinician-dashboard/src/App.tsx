@@ -16,12 +16,15 @@ import { SimulatorControl } from "./components/SimulatorControl";
 import { DoctorPortal } from "./components/DoctorPortal";
 import { AlertsDashboard } from "./components/AlertsDashboard";
 import { AnalyticsDashboard } from "./components/AnalyticsDashboard";
+import { UserManagement } from "./components/UserManagement";
+import { LoginPage } from "./components/LoginPage";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import type { Patient } from "./lib/patientApi";
 import type { Device } from "./lib/deviceApi";
 
 const qc = new QueryClient();
 
-type View = "dashboard" | "patients" | "devices" | "simulator" | "doctor" | "alerts" | "analytics";
+type View = "dashboard" | "patients" | "devices" | "simulator" | "doctor" | "alerts" | "analytics" | "users";
 
 function VitalsDashboard() {
   const [patientRef, setPatientRef] = useState<string>("");
@@ -203,7 +206,8 @@ function DeviceManagement() {
   );
 }
 
-function MainApp() {
+function AuthenticatedApp() {
+  const { user, permissions, logout, isLoading } = useAuth();
   const [currentView, setCurrentView] = useState<View>("dashboard");
 
   const navButtonStyle = (active: boolean) => ({
@@ -217,39 +221,97 @@ function MainApp() {
     fontSize: 14,
   });
 
+  if (isLoading) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div>Loading...</div>
+      </div>
+    );
+  }
+
+  const handleLogout = async () => {
+    await logout();
+  };
+
   return (
     <div style={{ fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif", minHeight: "100vh", background: "#f9fafb" }}>
-      <TopBar />
+      {/* Header with user info */}
+      <div style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "white", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 32, height: 32, background: "rgba(255,255,255,0.2)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>
+            +
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 16 }}>Health Platform</div>
+            <div style={{ fontSize: 11, opacity: 0.8 }}>Clinical Dashboard</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>{user?.display_name}</div>
+            <div style={{ fontSize: 11, opacity: 0.8 }}>{user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : ""} {user?.department ? `- ${user.department}` : ""}</div>
+          </div>
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: "6px 12px",
+              background: "rgba(255,255,255,0.2)",
+              border: "1px solid rgba(255,255,255,0.3)",
+              borderRadius: 6,
+              color: "white",
+              cursor: "pointer",
+              fontSize: 12,
+            }}
+          >
+            Logout
+          </button>
+        </div>
+      </div>
 
       {/* Navigation */}
       <div style={{ background: "white", borderBottom: "1px solid #eee", padding: "8px 16px" }}>
-        <nav style={{ display: "flex", gap: 8 }}>
+        <nav style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button style={navButtonStyle(currentView === "dashboard")} onClick={() => setCurrentView("dashboard")}>
             Vitals Dashboard
           </button>
-          <button style={navButtonStyle(currentView === "patients")} onClick={() => setCurrentView("patients")}>
-            Patient Management
-          </button>
+          {permissions?.can_view_patients && (
+            <button style={navButtonStyle(currentView === "patients")} onClick={() => setCurrentView("patients")}>
+              Patients
+            </button>
+          )}
           <button style={navButtonStyle(currentView === "devices")} onClick={() => setCurrentView("devices")}>
-            Device Management
+            Devices
           </button>
-          <button style={navButtonStyle(currentView === "simulator")} onClick={() => setCurrentView("simulator")}>
-            IoT Simulator
-          </button>
-          <button style={navButtonStyle(currentView === "doctor")} onClick={() => setCurrentView("doctor")}>
-            Doctor Portal
-          </button>
-          <button style={navButtonStyle(currentView === "alerts")} onClick={() => setCurrentView("alerts")}>
-            Alerts
-          </button>
-          <button style={navButtonStyle(currentView === "analytics")} onClick={() => setCurrentView("analytics")}>
-            Analytics
-          </button>
+          {permissions?.can_manage_devices && (
+            <button style={navButtonStyle(currentView === "simulator")} onClick={() => setCurrentView("simulator")}>
+              IoT Simulator
+            </button>
+          )}
+          {permissions?.can_view_clinical_data && (
+            <button style={navButtonStyle(currentView === "doctor")} onClick={() => setCurrentView("doctor")}>
+              Doctor Portal
+            </button>
+          )}
+          {permissions?.can_manage_alerts && (
+            <button style={navButtonStyle(currentView === "alerts")} onClick={() => setCurrentView("alerts")}>
+              Alerts
+            </button>
+          )}
+          {permissions?.can_view_analytics && (
+            <button style={navButtonStyle(currentView === "analytics")} onClick={() => setCurrentView("analytics")}>
+              Analytics
+            </button>
+          )}
+          {permissions?.can_manage_users && (
+            <button style={navButtonStyle(currentView === "users")} onClick={() => setCurrentView("users")}>
+              Users
+            </button>
+          )}
         </nav>
       </div>
 
       {/* Content */}
-      <main style={{ background: "white", minHeight: "calc(100vh - 120px)" }}>
+      <main style={{ background: "white", minHeight: "calc(100vh - 140px)" }}>
         {currentView === "dashboard" && <VitalsDashboard />}
         {currentView === "patients" && <PatientManagement />}
         {currentView === "devices" && <DeviceManagement />}
@@ -257,15 +319,37 @@ function MainApp() {
         {currentView === "doctor" && <DoctorPortal />}
         {currentView === "alerts" && <AlertsDashboard />}
         {currentView === "analytics" && <AnalyticsDashboard />}
+        {currentView === "users" && <UserManagement />}
       </main>
     </div>
   );
 }
 
+function MainApp() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [, setForceRender] = useState(0);
+
+  if (isLoading) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui" }}>
+        <div>Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={() => setForceRender((n) => n + 1)} />;
+  }
+
+  return <AuthenticatedApp />;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={qc}>
-      <MainApp />
+      <AuthProvider>
+        <MainApp />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
