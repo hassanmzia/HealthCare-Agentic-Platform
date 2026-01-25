@@ -9,11 +9,15 @@ import { RecommendationsPanel } from "./components/RecommendationsPanel";
 import { PatientList } from "./components/PatientList";
 import { PatientForm } from "./components/PatientForm";
 import { PatientImport } from "./components/PatientImport";
+import { DeviceList } from "./components/DeviceList";
+import { DeviceForm } from "./components/DeviceForm";
+import { DeviceAssignment } from "./components/DeviceAssignment";
 import type { Patient } from "./lib/patientApi";
+import type { Device } from "./lib/deviceApi";
 
 const qc = new QueryClient();
 
-type View = "dashboard" | "patients";
+type View = "dashboard" | "patients" | "devices";
 
 function VitalsDashboard() {
   const [patientRef, setPatientRef] = useState<string>("");
@@ -131,6 +135,70 @@ function PatientManagement() {
   );
 }
 
+function DeviceManagement() {
+  const [showForm, setShowForm] = useState(false);
+  const [showAssign, setShowAssign] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [deviceToAssign, setDeviceToAssign] = useState<Device | null>(null);
+
+  const handleSelectDevice = (device: Device) => {
+    setSelectedDevice(device);
+    setShowForm(true);
+  };
+
+  const handleCreateNew = () => {
+    setSelectedDevice(null);
+    setShowForm(true);
+  };
+
+  const handleAssign = (device: Device) => {
+    setDeviceToAssign(device);
+    setShowAssign(true);
+  };
+
+  const handleFormSuccess = () => {
+    setShowForm(false);
+    setSelectedDevice(null);
+  };
+
+  const handleAssignSuccess = () => {
+    setShowAssign(false);
+    setDeviceToAssign(null);
+  };
+
+  return (
+    <>
+      <DeviceList
+        onSelectDevice={handleSelectDevice}
+        onCreateNew={handleCreateNew}
+        onAssign={handleAssign}
+      />
+
+      {showForm && (
+        <DeviceForm
+          device={selectedDevice}
+          onClose={() => {
+            setShowForm(false);
+            setSelectedDevice(null);
+          }}
+          onSuccess={handleFormSuccess}
+        />
+      )}
+
+      {showAssign && deviceToAssign && (
+        <DeviceAssignment
+          device={deviceToAssign}
+          onClose={() => {
+            setShowAssign(false);
+            setDeviceToAssign(null);
+          }}
+          onSuccess={handleAssignSuccess}
+        />
+      )}
+    </>
+  );
+}
+
 function MainApp() {
   const [currentView, setCurrentView] = useState<View>("dashboard");
 
@@ -158,6 +226,9 @@ function MainApp() {
           <button style={navButtonStyle(currentView === "patients")} onClick={() => setCurrentView("patients")}>
             Patient Management
           </button>
+          <button style={navButtonStyle(currentView === "devices")} onClick={() => setCurrentView("devices")}>
+            Device Management
+          </button>
         </nav>
       </div>
 
@@ -165,6 +236,7 @@ function MainApp() {
       <main style={{ background: "white", minHeight: "calc(100vh - 120px)" }}>
         {currentView === "dashboard" && <VitalsDashboard />}
         {currentView === "patients" && <PatientManagement />}
+        {currentView === "devices" && <DeviceManagement />}
       </main>
     </div>
   );

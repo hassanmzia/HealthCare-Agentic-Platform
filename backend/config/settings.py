@@ -18,6 +18,7 @@ INSTALLED_APPS = [
     "vitals",
     "recommendations",
     "patients",
+    "devices",
 ]
 
 MIDDLEWARE = [
