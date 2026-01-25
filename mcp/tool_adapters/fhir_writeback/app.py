@@ -1,11 +1,15 @@
 from fastapi import FastAPI, Header, HTTPException
 import httpx
 import os
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="MCP FHIR Writeback Adapter")
 
 FHIR_BASE = os.getenv("FHIR_BASE", "http://hapi-fhir:8080/fhir")
-FHIR_AUTH_HEADER = os.getenv("FHIR_AUTH_HEADER", "")  # e.g. "Bearer xxx" if you add auth
+FHIR_AUTH_HEADER = os.getenv("FHIR_AUTH_HEADER", "")
 
 
 def _get_headers():
@@ -15,88 +19,59 @@ def _get_headers():
     return headers
 
 
+async def _ensure_patient(patient_id: str) -> dict:
+    """Internal helper to ensure patient exists in FHIR."""
+    async with httpx.AsyncClient(timeout=30) as client:
+        # Check if patient exists
+        r = await client.get(f"{FHIR_BASE}/Patient/{patient_id}", headers=_get_headers())
+        logger.info(f"Patient check for {patient_id}: {r.status_code}")
+
+        if r.status_code == 404:
+            # Create the patient
+            patient_resource = {
+                "resourceType": "Patient",
+                "id": patient_id,
+                "identifier": [{"system": "urn:demo:patient", "value": patient_id}],
+                "name": [{"family": "Demo", "given": ["Patient"]}],
+                "active": True
+            }
+            create_resp = await client.put(
+                f"{FHIR_BASE}/Patient/{patient_id}",
+                json=patient_resource,
+                headers=_get_headers()
+            )
+            logger.info(f"Patient create for {patient_id}: {create_resp.status_code}")
+            if create_resp.status_code >= 300:
+                logger.error(f"Failed to create patient: {create_resp.text}")
+                raise HTTPException(
+                    status_code=502,
+                    detail={"error": "Failed to create patient", "fhir_status": create_resp.status_code, "body": create_resp.text}
+                )
+            return {"patient_id": patient_id, "created": True}
+
+        return {"patient_id": patient_id, "created": False}
+
+
 @app.post("/tools/resolve_patient_encounter")
 async def resolve_patient_encounter(payload: dict, authorization: str | None = Header(default=None)):
-    """
-    Resolve or create a patient based on facility/device context.
-    For demo purposes, creates a patient if it doesn't exist.
-    """
+    """Resolve or create a patient based on facility/device context."""
     facility_id = payload.get("facility_id", "facility1")
     device_id = payload.get("device_id", "deviceX")
 
     # Use a deterministic patient ID based on device for demo
     patient_id = f"patient-{device_id}"
 
-    async with httpx.AsyncClient(timeout=30) as client:
-        # Check if patient exists
-        r = await client.get(f"{FHIR_BASE}/Patient/{patient_id}", headers=_get_headers())
+    logger.info(f"resolve_patient_encounter: facility={facility_id}, device={device_id}, patient_id={patient_id}")
 
-        if r.status_code == 404:
-            # Create the patient
-            patient_resource = {
-                "resourceType": "Patient",
-                "id": patient_id,
-                "identifier": [
-                    {
-                        "system": f"urn:facility:{facility_id}",
-                        "value": patient_id
-                    }
-                ],
-                "name": [{"family": "Demo", "given": ["Patient"]}],
-                "active": True
-            }
-            create_resp = await client.put(
-                f"{FHIR_BASE}/Patient/{patient_id}",
-                json=patient_resource,
-                headers=_get_headers()
-            )
-            if create_resp.status_code >= 300:
-                raise HTTPException(
-                    status_code=502,
-                    detail={"fhir_status": create_resp.status_code, "body": create_resp.text}
-                )
-
+    await _ensure_patient(patient_id)
     return {"patient_id": patient_id, "encounter_id": None}
 
 
 @app.post("/tools/ensure_patient_exists")
 async def ensure_patient_exists(payload: dict, authorization: str | None = Header(default=None)):
-    """
-    Ensure a patient exists in FHIR. Creates if not found.
-    """
+    """Ensure a patient exists in FHIR. Creates if not found."""
     patient_id = payload.get("patient_id", "demo-patient")
-
-    async with httpx.AsyncClient(timeout=30) as client:
-        # Check if patient exists
-        r = await client.get(f"{FHIR_BASE}/Patient/{patient_id}", headers=_get_headers())
-
-        if r.status_code == 404:
-            # Create the patient
-            patient_resource = {
-                "resourceType": "Patient",
-                "id": patient_id,
-                "identifier": [
-                    {
-                        "system": "urn:demo:patient",
-                        "value": patient_id
-                    }
-                ],
-                "name": [{"family": "Demo", "given": ["Patient"]}],
-                "active": True
-            }
-            create_resp = await client.put(
-                f"{FHIR_BASE}/Patient/{patient_id}",
-                json=patient_resource,
-                headers=_get_headers()
-            )
-            if create_resp.status_code >= 300:
-                raise HTTPException(
-                    status_code=502,
-                    detail={"fhir_status": create_resp.status_code, "body": create_resp.text}
-                )
-            return {"patient_id": patient_id, "created": True}
-
-        return {"patient_id": patient_id, "created": False}
+    return await _ensure_patient(patient_id)
 
 
 @app.post("/tools/write_fhir_observation")
@@ -107,17 +82,28 @@ async def write_fhir_observation(payload: dict, authorization: str | None = Head
 
     # Extract patient_id from the observation subject reference
     subject_ref = obs.get("subject", {}).get("reference", "")
+    logger.info(f"write_fhir_observation: subject_ref={subject_ref}")
+
     if subject_ref.startswith("Patient/"):
         patient_id = subject_ref.replace("Patient/", "")
-        # Ensure patient exists before creating observation
-        await ensure_patient_exists({"patient_id": patient_id})
+        logger.info(f"Ensuring patient exists: {patient_id}")
+        try:
+            await _ensure_patient(patient_id)
+        except Exception as e:
+            logger.error(f"Failed to ensure patient: {e}")
+            raise
 
     async with httpx.AsyncClient(timeout=30) as client:
+        logger.info(f"Posting observation to FHIR: {FHIR_BASE}/Observation")
         r = await client.post(f"{FHIR_BASE}/Observation", json=obs, headers=_get_headers())
+        logger.info(f"FHIR response: {r.status_code}")
+
         if r.status_code >= 300:
+            logger.error(f"FHIR error: {r.text}")
             raise HTTPException(status_code=502, detail={"fhir_status": r.status_code, "body": r.text})
 
         body = r.json()
         obs_id = body.get("id")
+        logger.info(f"Created observation: {obs_id}")
 
     return {"status": "ok", "observation_id": obs_id, "warnings": []}
