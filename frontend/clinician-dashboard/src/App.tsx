@@ -15,12 +15,13 @@ import { DeviceAssignment } from "./components/DeviceAssignment";
 import { SimulatorControl } from "./components/SimulatorControl";
 import { DoctorPortal } from "./components/DoctorPortal";
 import { AlertsDashboard } from "./components/AlertsDashboard";
+import { AnalyticsDashboard } from "./components/AnalyticsDashboard";
 import type { Patient } from "./lib/patientApi";
 import type { Device } from "./lib/deviceApi";
 
 const qc = new QueryClient();
 
-type View = "dashboard" | "patients" | "devices" | "simulator" | "doctor" | "alerts";
+type View = "dashboard" | "patients" | "devices" | "simulator" | "doctor" | "alerts" | "analytics";
 
 function VitalsDashboard() {
   const [patientRef, setPatientRef] = useState<string>("");
@@ -241,6 +242,9 @@ function MainApp() {
           <button style={navButtonStyle(currentView === "alerts")} onClick={() => setCurrentView("alerts")}>
             Alerts
           </button>
+          <button style={navButtonStyle(currentView === "analytics")} onClick={() => setCurrentView("analytics")}>
+            Analytics
+          </button>
         </nav>
       </div>
 
@@ -252,6 +256,7 @@ function MainApp() {
         {currentView === "simulator" && <SimulatorControl />}
         {currentView === "doctor" && <DoctorPortal />}
         {currentView === "alerts" && <AlertsDashboard />}
+        {currentView === "analytics" && <AnalyticsDashboard />}
       </main>
     </div>
   );
