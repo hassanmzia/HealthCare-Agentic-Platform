@@ -84,7 +84,7 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('medication', models.ForeignKey(blank=True, help_text='Link to specific medication if applicable', null=True, on_delete=django.db.models.deletion.SET_NULL, to='medications.medicationcatalog')),
-                ('patient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='allergies', to='patients.patient')),
+                ('patient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='medication_allergies', to='patients.patient')),
             ],
             options={
                 'verbose_name': 'Patient Allergy',

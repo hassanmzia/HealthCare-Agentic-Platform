@@ -151,7 +151,7 @@ class PatientAllergy(models.Model):
         ("adverse_reaction", "Adverse Reaction"),
     ]
 
-    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="allergies")
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="medication_allergies")
 
     # What they're allergic to
     allergen_type = models.CharField(
