@@ -94,7 +94,7 @@ class ClinicalNote(models.Model):
     ]
 
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="clinical_notes")
-    encounter = models.ForeignKey(Encounter, on_delete=models.SET_NULL, null=True, blank=True, related_name="notes")
+    encounter = models.ForeignKey(Encounter, on_delete=models.SET_NULL, null=True, blank=True, related_name="clinical_notes")
 
     note_type = models.CharField(max_length=50, choices=NOTE_TYPES, default="progress")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
