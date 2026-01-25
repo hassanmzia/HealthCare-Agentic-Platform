@@ -17,6 +17,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "vitals",
     "recommendations",
+    "patients",
 ]
 
 MIDDLEWARE = [
