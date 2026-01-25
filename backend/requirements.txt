@@ -1,8 +1,8 @@
 Django>=5.0
 djangorestframework
+djangorestframework-simplejwt
 psycopg[binary]
 django-cors-headers
 celery
 redis
 requests
-djangorestframework
