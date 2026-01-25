@@ -19,6 +19,7 @@ import { UserManagement } from "./components/UserManagement";
 import { LabsDashboard } from "./components/LabsDashboard";
 import { MedicationsDashboard } from "./components/MedicationsDashboard";
 import { LoginPage } from "./components/LoginPage";
+import { RegisterPage } from "./components/RegisterPage";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import type { Patient } from "./lib/patientApi";
 import type { Device } from "./lib/deviceApi";
@@ -341,6 +342,7 @@ function AuthenticatedApp() {
 function MainApp() {
   const { isAuthenticated, isLoading } = useAuth();
   const [, setForceRender] = useState(0);
+  const [showRegister, setShowRegister] = useState(false);
 
   if (isLoading) {
     return (
@@ -351,7 +353,23 @@ function MainApp() {
   }
 
   if (!isAuthenticated) {
-    return <LoginPage onLoginSuccess={() => setForceRender((n) => n + 1)} />;
+    if (showRegister) {
+      return (
+        <RegisterPage
+          onRegisterSuccess={() => {
+            setShowRegister(false);
+            setForceRender((n) => n + 1);
+          }}
+          onBackToLogin={() => setShowRegister(false)}
+        />
+      );
+    }
+    return (
+      <LoginPage
+        onLoginSuccess={() => setForceRender((n) => n + 1)}
+        onRegister={() => setShowRegister(true)}
+      />
+    );
   }
 
   return <AuthenticatedApp />;

@@ -3,9 +3,10 @@ import { useAuth } from "../context/AuthContext";
 
 interface LoginPageProps {
   onLoginSuccess: () => void;
+  onRegister?: () => void;
 }
 
-export function LoginPage({ onLoginSuccess }: LoginPageProps) {
+export function LoginPage({ onLoginSuccess, onRegister }: LoginPageProps) {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -164,7 +165,28 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
           </button>
         </form>
 
-        <div style={{ marginTop: 24, textAlign: "center" }}>
+        {onRegister && (
+          <div style={{ marginTop: 24, textAlign: "center" }}>
+            <p style={{ fontSize: 14, color: "#6b7280" }}>
+              Don't have an account?{" "}
+              <button
+                onClick={onRegister}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#667eea",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: 14,
+                }}
+              >
+                Create account
+              </button>
+            </p>
+          </div>
+        )}
+
+        <div style={{ marginTop: 16, textAlign: "center" }}>
           <p style={{ fontSize: 12, color: "#9ca3af" }}>
             Demo credentials: admin@health.local / admin123
           </p>
