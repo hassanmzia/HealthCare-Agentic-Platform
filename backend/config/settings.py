@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "clinical",
     "alerts",
     "analytics",
+    "labs",
 ]
 
 MIDDLEWARE = [
