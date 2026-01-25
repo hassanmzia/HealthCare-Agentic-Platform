@@ -10,8 +10,6 @@ import {
   setPatientCondition,
   resetStats,
   PATIENT_CONDITIONS,
-  type SimulatorStatus,
-  type AssignedDevice,
 } from "../lib/simulatorApi";
 
 export function SimulatorControl() {

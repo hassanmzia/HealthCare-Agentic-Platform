@@ -13,7 +13,6 @@ import {
   deleteAlertRule,
   type Alert,
   type AlertRule,
-  type AlertSummary,
   VITAL_TYPES,
   CONDITIONS,
   SEVERITIES,
@@ -690,7 +689,7 @@ function AlertRuleForm({ rule, onClose, onSuccess }: { rule: AlertRule | null; o
     const data = {
       ...formData,
       threshold_value: parseFloat(formData.threshold_value),
-      threshold_value_high: formData.threshold_value_high ? parseFloat(formData.threshold_value_high) : null,
+      threshold_value_high: formData.threshold_value_high ? parseFloat(formData.threshold_value_high) : undefined,
     };
 
     if (isEditing) {
