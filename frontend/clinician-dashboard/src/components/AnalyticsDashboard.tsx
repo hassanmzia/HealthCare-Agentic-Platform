@@ -112,7 +112,7 @@ function LineChart({ data, xKey, yKeys, colors, height = 200 }: {
       })}
 
       {/* X axis labels (show some) */}
-      {data.filter((_, i) => i % Math.ceil(data.length / 6) === 0 || i === data.length - 1).map((d, idx, arr) => {
+      {data.filter((_, i) => i % Math.ceil(data.length / 6) === 0 || i === data.length - 1).map((d) => {
         const origIdx = data.indexOf(d);
         const label = String(d[xKey]).slice(5, 10); // MM-DD format
         return (
@@ -176,12 +176,11 @@ function DistributionChart({ data, colors }: { data: Record<string, number>; col
 }
 
 // Stat card component
-function StatCard({ title, value, subtitle, color = "#3b82f6", icon }: {
+function StatCard({ title, value, subtitle, color = "#3b82f6" }: {
   title: string;
   value: string | number;
   subtitle?: string;
   color?: string;
-  icon?: string;
 }) {
   return (
     <div style={{

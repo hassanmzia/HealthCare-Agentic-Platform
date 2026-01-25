@@ -211,7 +211,7 @@ function UserFormModal({
               <label style={{ display: "block", fontSize: 12, fontWeight: 500, marginBottom: 4 }}>Role *</label>
               <select
                 value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value as User["role"] })}
                 style={{ width: "100%", padding: 8, border: "1px solid #ddd", borderRadius: 6, fontSize: 13, boxSizing: "border-box" }}
               >
                 {Object.entries(ROLE_LABELS).map(([value, label]) => (

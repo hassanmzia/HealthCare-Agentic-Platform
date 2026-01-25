@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
-import { TopBar } from "./components/TopBar";
 import { PatientPicker } from "./components/PatientPicker";
 import { fetchObservations, normalizeVitals } from "./lib/fhirApi";
 import { fetchRecommendations } from "./lib/api";

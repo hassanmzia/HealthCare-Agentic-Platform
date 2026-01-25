@@ -12,18 +12,15 @@ import {
   discontinuePrescription,
   administerMedication,
   recordNotGiven,
-  type MedicationCatalogList,
   type Prescription,
-  type MedicationAdministration,
   type PrescriptionCreate,
 } from "../lib/medicationsApi";
-import { fetchPatients, type Patient } from "../lib/patientApi";
+import { fetchPatients } from "../lib/patientApi";
 
 type TabType = "prescriptions" | "mar" | "catalog" | "stats";
 
 export function MedicationsDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>("prescriptions");
-  const queryClient = useQueryClient();
 
   const tabStyle = (active: boolean) => ({
     padding: "10px 20px",
@@ -457,9 +454,9 @@ function NewPrescriptionModal({ onClose }: { onClose: () => void }) {
               style={{ width: "100%", padding: "10px 12px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 14 }}
             >
               <option value="">Select patient...</option>
-              {patientsQ.data?.map((p: Patient) => (
+              {patientsQ.data?.results?.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.first_name} {p.last_name} - MRN: {p.medical_record_number}
+                  {p.first_name} {p.last_name} - MRN: {p.mrn}
                 </option>
               ))}
             </select>
@@ -688,7 +685,6 @@ function NewPrescriptionModal({ onClose }: { onClose: () => void }) {
 
 function MARTab() {
   const queryClient = useQueryClient();
-  const today = new Date().toISOString().split("T")[0];
 
   const administrationsQ = useQuery({
     queryKey: ["administrations", "due"],
