@@ -12,12 +12,13 @@ import { PatientImport } from "./components/PatientImport";
 import { DeviceList } from "./components/DeviceList";
 import { DeviceForm } from "./components/DeviceForm";
 import { DeviceAssignment } from "./components/DeviceAssignment";
+import { SimulatorControl } from "./components/SimulatorControl";
 import type { Patient } from "./lib/patientApi";
 import type { Device } from "./lib/deviceApi";
 
 const qc = new QueryClient();
 
-type View = "dashboard" | "patients" | "devices";
+type View = "dashboard" | "patients" | "devices" | "simulator";
 
 function VitalsDashboard() {
   const [patientRef, setPatientRef] = useState<string>("");
@@ -229,6 +230,9 @@ function MainApp() {
           <button style={navButtonStyle(currentView === "devices")} onClick={() => setCurrentView("devices")}>
             Device Management
           </button>
+          <button style={navButtonStyle(currentView === "simulator")} onClick={() => setCurrentView("simulator")}>
+            IoT Simulator
+          </button>
         </nav>
       </div>
 
@@ -237,6 +241,7 @@ function MainApp() {
         {currentView === "dashboard" && <VitalsDashboard />}
         {currentView === "patients" && <PatientManagement />}
         {currentView === "devices" && <DeviceManagement />}
+        {currentView === "simulator" && <SimulatorControl />}
       </main>
     </div>
   );

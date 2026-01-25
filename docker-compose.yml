@@ -131,6 +131,24 @@ services:
     networks: [healthnet]
     restart: unless-stopped
 
+  iot-simulator:
+    build: ./iot-simulator
+    command: uvicorn app:app --host 0.0.0.0 --port 8004
+    environment:
+      BACKEND_URL: http://backend:8000
+      MCP_ADAPTER_URL: http://mcp-fhir-adapter:8002
+      DEFAULT_INTERVAL: "30"
+      AUTO_START: "false"
+    ports:
+      - "8004:8004"
+    depends_on:
+      backend:
+        condition: service_started
+      mcp-fhir-adapter:
+        condition: service_started
+    networks: [healthnet]
+    restart: unless-stopped
+
 networks:
   healthnet:
 
