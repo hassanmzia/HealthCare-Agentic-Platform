@@ -18,6 +18,7 @@ import { AlertsDashboard } from "./components/AlertsDashboard";
 import { AnalyticsDashboard } from "./components/AnalyticsDashboard";
 import { UserManagement } from "./components/UserManagement";
 import { LabsDashboard } from "./components/LabsDashboard";
+import { MedicationsDashboard } from "./components/MedicationsDashboard";
 import { LoginPage } from "./components/LoginPage";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import type { Patient } from "./lib/patientApi";
@@ -25,7 +26,7 @@ import type { Device } from "./lib/deviceApi";
 
 const qc = new QueryClient();
 
-type View = "dashboard" | "patients" | "devices" | "simulator" | "doctor" | "labs" | "alerts" | "analytics" | "users";
+type View = "dashboard" | "patients" | "devices" | "simulator" | "doctor" | "labs" | "medications" | "alerts" | "analytics" | "users";
 
 function VitalsDashboard() {
   const [patientRef, setPatientRef] = useState<string>("");
@@ -298,6 +299,11 @@ function AuthenticatedApp() {
               Labs
             </button>
           )}
+          {permissions?.can_view_clinical_data && (
+            <button style={navButtonStyle(currentView === "medications")} onClick={() => setCurrentView("medications")}>
+              Medications
+            </button>
+          )}
           {permissions?.can_manage_alerts && (
             <button style={navButtonStyle(currentView === "alerts")} onClick={() => setCurrentView("alerts")}>
               Alerts
@@ -324,6 +330,7 @@ function AuthenticatedApp() {
         {currentView === "simulator" && <SimulatorControl />}
         {currentView === "doctor" && <DoctorPortal />}
         {currentView === "labs" && <LabsDashboard />}
+        {currentView === "medications" && <MedicationsDashboard />}
         {currentView === "alerts" && <AlertsDashboard />}
         {currentView === "analytics" && <AnalyticsDashboard />}
         {currentView === "users" && <UserManagement />}
