@@ -1,0 +1,66 @@
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
+from .models import VitalsEvent
+from .tasks import run_orchestration
+
+
+class VitalsEventView(APIView):
+    """
+    Receives vitals events and triggers async orchestration via Celery.
+    Expected JSON:
+      {
+        "device_id": "deviceX",
+        "effective_time": "2026-01-25T12:00:00Z",
+        "readings": {...}
+      }
+    """
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        device_id = request.data.get("device_id")
+        if not device_id:
+            return Response({"error": "device_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        event = VitalsEvent.objects.create(
+            device_id=device_id,
+            payload=request.data
+        )
+
+        # async run
+        run_orchestration.delay(event.id)
+
+        return Response({"status": "accepted", "vitals_event_id": event.id}, status=status.HTTP_202_ACCEPTED)
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.shortcuts import get_object_or_404
+
+from .models import VitalsEvent
+
+
+class VitalsEventInternalView(APIView):
+    """
+    Internal read endpoint (debug/admin use).
+    GET /api/v1/vitals/internal/events/<event_id>
+    """
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request, event_id: int):
+        ev = get_object_or_404(VitalsEvent, id=event_id)
+        return Response(
+            {
+                "id": ev.id,
+                "patient_id": getattr(ev, "patient_id", None),
+                "device_id": ev.device_id,
+                "effective_time": ev.effective_time.isoformat() if ev.effective_time else None,
+                "readings": ev.readings,
+                "created_at": ev.created_at.isoformat() if hasattr(ev, "created_at") and ev.created_at else None,
+            },
+            status=status.HTTP_200_OK,
+        )
+

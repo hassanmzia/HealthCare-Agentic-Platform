@@ -1,46 +1,139 @@
-version: "3.9"
-
 services:
   db:
-    image: pgvector/pgvector:pg16 
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: healthapp
-    ports: ["5432:5432"]
+      POSTGRES_USER: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d healthapp"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks: [healthnet]
+    restart: unless-stopped
 
   redis:
     image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks: [healthnet]
+    restart: unless-stopped
 
   backend:
     build: ./backend
-    command: python manage.py runserver 0.0.0.0:8000
-    volumes: [./backend:/app]
-    ports: ["8000:8000"]
-    depends_on: [db, redis]
+    command: bash -lc "./wait_for_db.sh && python manage.py migrate && python manage.py runserver 0.0.0.0:8000 --noreload"
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: healthapp
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      # If you enabled CORS in settings, keep it there; no need here.
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [healthnet]
+    restart: unless-stopped
 
   worker:
     build: ./backend
-    command: celery -A config worker --loglevel=info
-    depends_on: [backend, redis]
+    command: bash -lc "./wait_for_db.sh && celery -A config.celery:app worker --loglevel=info"
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: healthapp
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      backend:
+        condition: service_started
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [healthnet]
+    restart: unless-stopped
 
   orchestrator:
     build: ./orchestrator
-    command: uvicorn app:app --host 0.0.0.0 --port 8001
-    ports: ["8001:8001"]
-
-  mcp-server:
-    image: teradata/mcp-server:latest
-    ports: ["8002:8002"]
+    command: uvicorn app:app --host 0.0.0.0 --port 8003
+    environment:
+      # If orchestrator calls MCP adapter:
+      MCP_FHIR_ADAPTER_URL: http://mcp-fhir-adapter:8002
+      FHIR_BASE: http://hapi-fhir:8080/fhir
+      # Add LangSmith keys here if you use them
+      # LANGCHAIN_TRACING_V2: "true"
+      # LANGCHAIN_API_KEY: "..."
+      # LANGCHAIN_PROJECT: "health-agentic-platform"
+    ports:
+      - "8003:8003"
+    depends_on:
+      mcp-fhir-adapter:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    networks: [healthnet]
+    restart: unless-stopped
 
   hapi-fhir:
     image: hapiproject/hapi:latest
-    ports: ["8080:8080"]
+    ports:
+      - "18090:8080"
+    networks: [healthnet]
+    restart: unless-stopped
 
   mcp-fhir-adapter:
     build: ./mcp/tool_adapters/fhir_writeback
     command: uvicorn app:app --host 0.0.0.0 --port 8002
     environment:
       FHIR_BASE: "http://hapi-fhir:8080/fhir"
-    ports: ["8002:8002"]
-    depends_on: [hapi-fhir]
+    ports:
+      - "8002:8002"
+    depends_on:
+      hapi-fhir:
+        condition: service_started
+    networks: [healthnet]
+    restart: unless-stopped
+
+  clinician-ui:
+    build:
+      context: ./frontend/clinician-dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "3030:80"
+    depends_on:
+      backend:
+        condition: service_started
+      hapi-fhir:
+        condition: service_started
+      orchestrator:
+        condition: service_started
+    networks: [healthnet]
+    restart: unless-stopped
+
+networks:
+  healthnet:
+
+volumes:
+  pgdata:
 

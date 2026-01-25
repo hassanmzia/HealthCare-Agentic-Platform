@@ -1,0 +1,38 @@
+def _dt(ev, *names):
+    for n in names:
+        if hasattr(ev, n) and getattr(ev, n) is not None:
+            v = getattr(ev, n)
+            return v.isoformat() if hasattr(v, "isoformat") else str(v)
+    return None
+
+def _val(ev, *names, default=None):
+    for n in names:
+        if hasattr(ev, n):
+            return getattr(ev, n)
+    return default
+
+class VitalsEventInternalView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request, event_id: int):
+        ev = get_object_or_404(VitalsEvent, id=event_id)
+
+        # Try common time field names
+        effective = _dt(ev, "effective_time", "effectiveDateTime", "observed_at", "measured_at", "timestamp", "event_time", "time", "created_at")
+
+        # Try common payload/readings names
+        readings = _val(ev, "readings", "payload", "data", "measurements", default={})
+
+        return Response(
+            {
+                "id": ev.id,
+                "patient_id": _val(ev, "patient_id", "patient", "patient_ref"),
+                "device_id": _val(ev, "device_id", "device", "device_ref"),
+                "effective_time": effective,
+                "readings": readings,
+                "created_at": _dt(ev, "created_at"),
+            },
+            status=status.HTTP_200_OK,
+        )
+
