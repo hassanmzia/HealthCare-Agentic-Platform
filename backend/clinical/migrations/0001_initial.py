@@ -1,0 +1,157 @@
+# Generated migration for clinical app
+
+from django.db import migrations, models
+import django.db.models.deletion
+
+
+class Migration(migrations.Migration):
+
+    initial = True
+
+    dependencies = [
+        ('patients', '0001_initial'),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='Encounter',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('fhir_id', models.CharField(blank=True, help_text='FHIR Encounter resource ID', max_length=100, null=True)),
+                ('encounter_type', models.CharField(choices=[('ambulatory', 'Ambulatory Visit'), ('emergency', 'Emergency Visit'), ('inpatient', 'Inpatient Stay'), ('observation', 'Observation'), ('telehealth', 'Telehealth'), ('home_health', 'Home Health'), ('other', 'Other')], default='ambulatory', max_length=50)),
+                ('status', models.CharField(choices=[('planned', 'Planned'), ('in_progress', 'In Progress'), ('on_hold', 'On Hold'), ('completed', 'Completed'), ('cancelled', 'Cancelled')], default='in_progress', max_length=20)),
+                ('priority', models.CharField(choices=[('routine', 'Routine'), ('urgent', 'Urgent'), ('emergency', 'Emergency')], default='routine', max_length=20)),
+                ('start_time', models.DateTimeField()),
+                ('end_time', models.DateTimeField(blank=True, null=True)),
+                ('facility', models.CharField(blank=True, max_length=200)),
+                ('department', models.CharField(blank=True, max_length=200)),
+                ('room', models.CharField(blank=True, max_length=50)),
+                ('bed', models.CharField(blank=True, max_length=50)),
+                ('attending_physician', models.CharField(blank=True, max_length=200)),
+                ('attending_physician_id', models.CharField(blank=True, max_length=100)),
+                ('chief_complaint', models.TextField(blank=True, help_text='Primary reason for visit')),
+                ('reason_codes', models.JSONField(blank=True, default=list, help_text='ICD-10 codes for reason')),
+                ('notes', models.TextField(blank=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+                ('patient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='encounters', to='patients.patient')),
+            ],
+            options={
+                'verbose_name': 'Encounter',
+                'verbose_name_plural': 'Encounters',
+                'ordering': ['-start_time'],
+            },
+        ),
+        migrations.CreateModel(
+            name='ClinicalNote',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('note_type', models.CharField(choices=[('progress', 'Progress Note'), ('admission', 'Admission Note'), ('discharge', 'Discharge Summary'), ('consultation', 'Consultation Note'), ('procedure', 'Procedure Note'), ('nursing', 'Nursing Note'), ('soap', 'SOAP Note'), ('history_physical', 'History & Physical'), ('referral', 'Referral Note'), ('other', 'Other')], default='progress', max_length=50)),
+                ('status', models.CharField(choices=[('draft', 'Draft'), ('final', 'Final'), ('amended', 'Amended'), ('entered_in_error', 'Entered in Error')], default='draft', max_length=20)),
+                ('title', models.CharField(max_length=255)),
+                ('subjective', models.TextField(blank=True, help_text="Patient's symptoms and complaints")),
+                ('objective', models.TextField(blank=True, help_text='Physical exam and test results')),
+                ('assessment', models.TextField(blank=True, help_text='Diagnoses and clinical impressions')),
+                ('plan', models.TextField(blank=True, help_text='Treatment plan and next steps')),
+                ('content', models.TextField(blank=True, help_text='Full note content')),
+                ('author', models.CharField(max_length=200)),
+                ('author_role', models.CharField(blank=True, help_text='e.g., MD, NP, RN', max_length=100)),
+                ('co_signer', models.CharField(blank=True, max_length=200)),
+                ('note_datetime', models.DateTimeField(help_text='When the note was recorded')),
+                ('signed_datetime', models.DateTimeField(blank=True, null=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+                ('patient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='clinical_notes', to='patients.patient')),
+                ('encounter', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='notes', to='clinical.encounter')),
+            ],
+            options={
+                'verbose_name': 'Clinical Note',
+                'verbose_name_plural': 'Clinical Notes',
+                'ordering': ['-note_datetime'],
+            },
+        ),
+        migrations.CreateModel(
+            name='Diagnosis',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('icd10_code', models.CharField(help_text='ICD-10 diagnosis code', max_length=20)),
+                ('description', models.CharField(help_text='Diagnosis description', max_length=500)),
+                ('category', models.CharField(choices=[('admitting', 'Admitting Diagnosis'), ('working', 'Working Diagnosis'), ('final', 'Final Diagnosis'), ('discharge', 'Discharge Diagnosis'), ('billing', 'Billing Diagnosis')], default='working', max_length=20)),
+                ('status', models.CharField(choices=[('active', 'Active'), ('resolved', 'Resolved'), ('inactive', 'Inactive'), ('ruled_out', 'Ruled Out')], default='active', max_length=20)),
+                ('onset_date', models.DateField(blank=True, null=True)),
+                ('resolution_date', models.DateField(blank=True, null=True)),
+                ('severity', models.CharField(blank=True, help_text='e.g., mild, moderate, severe', max_length=50)),
+                ('clinical_notes', models.TextField(blank=True)),
+                ('diagnosed_by', models.CharField(blank=True, max_length=200)),
+                ('diagnosed_date', models.DateTimeField(auto_now_add=True)),
+                ('is_primary', models.BooleanField(default=False, help_text='Primary diagnosis for encounter')),
+                ('rank', models.IntegerField(default=1, help_text='Order of diagnosis')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+                ('patient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='diagnoses', to='patients.patient')),
+                ('encounter', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='diagnoses', to='clinical.encounter')),
+            ],
+            options={
+                'verbose_name': 'Diagnosis',
+                'verbose_name_plural': 'Diagnoses',
+                'ordering': ['rank', '-created_at'],
+            },
+        ),
+        migrations.CreateModel(
+            name='CarePlan',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('title', models.CharField(max_length=255)),
+                ('category', models.CharField(choices=[('assessment', 'Assessment & Plan'), ('treatment', 'Treatment Plan'), ('discharge', 'Discharge Plan'), ('follow_up', 'Follow-up Plan'), ('chronic', 'Chronic Care Management')], default='treatment', max_length=50)),
+                ('status', models.CharField(choices=[('draft', 'Draft'), ('active', 'Active'), ('on_hold', 'On Hold'), ('completed', 'Completed'), ('cancelled', 'Cancelled')], default='active', max_length=20)),
+                ('description', models.TextField(blank=True)),
+                ('goals', models.JSONField(blank=True, default=list, help_text='List of care goals')),
+                ('activities', models.JSONField(blank=True, default=list, help_text='List of planned activities')),
+                ('start_date', models.DateField()),
+                ('end_date', models.DateField(blank=True, null=True)),
+                ('created_by', models.CharField(max_length=200)),
+                ('care_team', models.JSONField(blank=True, default=list, help_text='Care team members')),
+                ('patient_instructions', models.TextField(blank=True, help_text='Instructions for patient')),
+                ('follow_up_instructions', models.TextField(blank=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+                ('patient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='care_plans', to='patients.patient')),
+                ('encounter', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='care_plans', to='clinical.encounter')),
+                ('addresses_diagnoses', models.ManyToManyField(blank=True, related_name='care_plans', to='clinical.diagnosis')),
+            ],
+            options={
+                'verbose_name': 'Care Plan',
+                'verbose_name_plural': 'Care Plans',
+                'ordering': ['-created_at'],
+            },
+        ),
+        migrations.CreateModel(
+            name='Vitals',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('heart_rate', models.IntegerField(blank=True, help_text='bpm', null=True)),
+                ('blood_pressure_systolic', models.IntegerField(blank=True, help_text='mmHg', null=True)),
+                ('blood_pressure_diastolic', models.IntegerField(blank=True, help_text='mmHg', null=True)),
+                ('respiratory_rate', models.IntegerField(blank=True, help_text='breaths/min', null=True)),
+                ('temperature', models.DecimalField(blank=True, decimal_places=1, help_text='Celsius', max_digits=4, null=True)),
+                ('oxygen_saturation', models.IntegerField(blank=True, help_text='SpO2 %', null=True)),
+                ('weight', models.DecimalField(blank=True, decimal_places=1, help_text='kg', max_digits=5, null=True)),
+                ('height', models.DecimalField(blank=True, decimal_places=1, help_text='cm', max_digits=5, null=True)),
+                ('bmi', models.DecimalField(blank=True, decimal_places=1, max_digits=4, null=True)),
+                ('pain_level', models.IntegerField(blank=True, help_text='0-10 scale', null=True)),
+                ('recorded_at', models.DateTimeField()),
+                ('recorded_by', models.CharField(blank=True, max_length=200)),
+                ('method', models.CharField(blank=True, help_text='Manual, device, etc.', max_length=100)),
+                ('device_id', models.CharField(blank=True, max_length=100)),
+                ('notes', models.TextField(blank=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('patient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='vitals_records', to='patients.patient')),
+                ('encounter', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='vitals', to='clinical.encounter')),
+            ],
+            options={
+                'verbose_name': 'Vitals Record',
+                'verbose_name_plural': 'Vitals Records',
+                'ordering': ['-recorded_at'],
+            },
+        ),
+    ]
