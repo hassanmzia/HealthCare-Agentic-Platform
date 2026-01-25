@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: healthapp
+    ports: ["5432:5432"]
+
+  redis:
+    image: redis:7
+
+  backend:
+    build: ./backend
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes: [./backend:/app]
+    ports: ["8000:8000"]
+    depends_on: [db, redis]
+
+  worker:
+    build: ./backend
+    command: celery -A config worker --loglevel=info
+    depends_on: [backend, redis]
+
+  orchestrator:
+    build: ./orchestrator
+    command: uvicorn app:app --host 0.0.0.0 --port 8001
+    ports: ["8001:8001"]
+
+  mcp-server:
+    image: teradata/mcp-server:latest
+    ports: ["8002:8002"]
