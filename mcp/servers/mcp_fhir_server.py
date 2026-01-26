@@ -6,7 +6,12 @@ Provides unified access to FHIR resources (Patient, Observation, Condition, etc.
 import httpx
 import os
 from typing import Optional
-from .base import BaseMCPServer, MCPRequest
+
+# Support both package import and direct execution
+try:
+    from .base import BaseMCPServer, MCPRequest
+except ImportError:
+    from base import BaseMCPServer, MCPRequest
 
 FHIR_BASE = os.getenv("FHIR_BASE", "http://hapi-fhir:8080/fhir")
 
