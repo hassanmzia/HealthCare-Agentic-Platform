@@ -189,15 +189,44 @@ export function PatientList({ onSelectPatient, onCreateNew, onImport }: PatientL
                     </td>
                     <td style={{ padding: 12, borderBottom: "1px solid #eee" }}>{statusBadge(patient.status)}</td>
                     <td style={{ padding: 12, borderBottom: "1px solid #eee" }}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(patient);
-                        }}
-                        style={{ padding: "4px 8px", borderRadius: 4, border: "1px solid #ddd", background: "white", cursor: "pointer", fontSize: 12 }}
-                      >
-                        Deactivate
-                      </button>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectPatient(patient);
+                          }}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: 6,
+                            border: "1px solid #3b82f6",
+                            background: "white",
+                            color: "#3b82f6",
+                            cursor: "pointer",
+                            fontSize: 12,
+                            fontWeight: 500,
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(patient);
+                          }}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: 6,
+                            border: "1px solid #ef4444",
+                            background: "white",
+                            color: "#ef4444",
+                            cursor: "pointer",
+                            fontSize: 12,
+                            fontWeight: 500,
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
