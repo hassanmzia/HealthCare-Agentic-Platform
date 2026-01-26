@@ -11,6 +11,7 @@ from typing import Optional
 
 import httpx
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from vitals_generator import VitalsGenerator, get_patient_profile, reset_patient_profile, PatientProfile
@@ -19,6 +20,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="IoT Simulator", description="Synthetic vitals generator for healthcare devices")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Configuration
 BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:8000")
