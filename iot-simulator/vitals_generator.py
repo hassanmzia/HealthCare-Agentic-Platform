@@ -147,7 +147,7 @@ class VitalsGenerator:
         # If no capabilities specified, generate common vitals
         if not vitals_to_generate:
             vitals_to_generate = {"heart_rate", "spo2", "blood_pressure_systolic",
-                                  "blood_pressure_diastolic", "temperature"}
+                                  "blood_pressure_diastolic", "temperature", "respiratory_rate"}
 
         # Generate each vital
         for vital in vitals_to_generate:
