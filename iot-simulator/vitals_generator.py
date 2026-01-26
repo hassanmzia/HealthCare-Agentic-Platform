@@ -74,7 +74,7 @@ class VitalsGenerator:
         "heart_rate": {"code": "8867-4", "display": "Heart rate", "unit": "/min"},
         "blood_pressure_systolic": {"code": "8480-6", "display": "Systolic blood pressure", "unit": "mm[Hg]"},
         "blood_pressure_diastolic": {"code": "8462-4", "display": "Diastolic blood pressure", "unit": "mm[Hg]"},
-        "spo2": {"code": "2708-6", "display": "Oxygen saturation", "unit": "%"},
+        "spo2": {"code": "59408-5", "display": "Oxygen saturation in Arterial blood by Pulse oximetry", "unit": "%"},
         "temperature": {"code": "8310-5", "display": "Body temperature", "unit": "Cel"},
         "respiratory_rate": {"code": "9279-1", "display": "Respiratory rate", "unit": "/min"},
         "glucose": {"code": "2339-0", "display": "Glucose [Mass/volume] in Blood", "unit": "mg/dL"},
@@ -164,7 +164,76 @@ class VitalsGenerator:
         observations = []
         timestamp = datetime.utcnow().isoformat() + "Z"
 
+        # Handle blood pressure as combined observation with components
+        if "blood_pressure_systolic" in vitals and "blood_pressure_diastolic" in vitals:
+            sys_data = vitals["blood_pressure_systolic"]
+            dia_data = vitals["blood_pressure_diastolic"]
+            bp_obs = {
+                "resourceType": "Observation",
+                "status": "final",
+                "category": [{
+                    "coding": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                        "code": "vital-signs",
+                        "display": "Vital Signs"
+                    }]
+                }],
+                "code": {
+                    "coding": [{
+                        "system": "http://loinc.org",
+                        "code": "85354-9",
+                        "display": "Blood pressure panel with all children optional"
+                    }],
+                    "text": "Blood pressure"
+                },
+                "subject": {
+                    "reference": f"Patient/{patient_id}"
+                },
+                "device": {
+                    "reference": f"Device/{device_id}"
+                },
+                "effectiveDateTime": timestamp,
+                "component": [
+                    {
+                        "code": {
+                            "coding": [{
+                                "system": "http://loinc.org",
+                                "code": "8480-6",
+                                "display": "Systolic blood pressure"
+                            }]
+                        },
+                        "valueQuantity": {
+                            "value": sys_data["value"],
+                            "unit": "mm[Hg]",
+                            "system": "http://unitsofmeasure.org",
+                            "code": "mm[Hg]"
+                        }
+                    },
+                    {
+                        "code": {
+                            "coding": [{
+                                "system": "http://loinc.org",
+                                "code": "8462-4",
+                                "display": "Diastolic blood pressure"
+                            }]
+                        },
+                        "valueQuantity": {
+                            "value": dia_data["value"],
+                            "unit": "mm[Hg]",
+                            "system": "http://unitsofmeasure.org",
+                            "code": "mm[Hg]"
+                        }
+                    }
+                ]
+            }
+            observations.append(bp_obs)
+
+        # Handle other vitals as regular observations
         for vital_name, vital_data in vitals.items():
+            # Skip BP components as they're handled above
+            if vital_name in ("blood_pressure_systolic", "blood_pressure_diastolic"):
+                continue
+
             loinc = vital_data["loinc"]
             obs = {
                 "resourceType": "Observation",
