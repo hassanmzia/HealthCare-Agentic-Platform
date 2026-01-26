@@ -46,10 +46,10 @@ class MCPRequest(BaseModel):
     """Standard MCP request format"""
     tool_name: str
     arguments: dict
-    request_id: str = None
-    patient_id: str = None
-    user_id: str = None
-    session_id: str = None
+    request_id: Optional[str] = None
+    patient_id: Optional[str] = None
+    user_id: Optional[str] = None
+    session_id: Optional[str] = None
 
     def __init__(self, **data):
         if not data.get("request_id"):
@@ -63,10 +63,10 @@ class MCPResponse(BaseModel):
     tool_name: str
     success: bool
     data: Any = None
-    error: str = None
+    error: Optional[str] = None
     metadata: dict = {}
     execution_time_ms: float = 0
-    timestamp: str = None
+    timestamp: Optional[str] = None
 
     def __init__(self, **data):
         if not data.get("timestamp"):
@@ -79,15 +79,15 @@ class AuditLogEntry(BaseModel):
     timestamp: datetime
     request_id: str
     user_id: str
-    patient_id: str
+    patient_id: Optional[str] = None
     tool_name: str
     action: str
     resource_type: str
-    resource_id: str = None
+    resource_id: Optional[str] = None
     success: bool
-    error_message: str = None
-    ip_address: str = None
-    user_agent: str = None
+    error_message: Optional[str] = None
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
 
 
 # ============================================================================
