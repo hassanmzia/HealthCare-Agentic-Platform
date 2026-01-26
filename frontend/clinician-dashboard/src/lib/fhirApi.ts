@@ -2,7 +2,7 @@ import { fhir } from "./http";
 import type { FhirBundle, Observation } from "./fhirTypes";
 
 export async function fetchObservations(params: {
-  patientRef?: string;        // e.g. "Patient/123"
+  patientRef?: string;        // e.g. "Patient/123" or just "123"
   count?: number;             // default 100
   category?: string;          // "vital-signs"
 }) {
@@ -10,7 +10,13 @@ export async function fetchObservations(params: {
   const q: Record<string, string> = { _count: String(count) };
 
   if (params.category) q["category"] = params.category;
-  if (params.patientRef) q["subject"] = params.patientRef;
+  if (params.patientRef) {
+    // Support both "Patient/123" format and just "123"
+    const ref = params.patientRef.includes("/")
+      ? params.patientRef
+      : `Patient/${params.patientRef}`;
+    q["subject"] = ref;
+  }
 
   const search = new URLSearchParams(q).toString();
   const res = await fhir.get<FhirBundle<Observation>>(`/Observation?${search}`);
