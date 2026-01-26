@@ -98,10 +98,10 @@ export function DoctorPortal() {
     const mostRecent = rows[rows.length - 1];
 
     return {
-      heart_rate: hr?.value,
-      oxygen_saturation: spo2?.value,
-      temperature: temp?.value,
-      respiratory_rate: rr?.value,
+      heart_rate: hr?.value ?? undefined,
+      oxygen_saturation: spo2?.value ?? undefined,
+      temperature: temp?.value ?? undefined,
+      respiratory_rate: rr?.value ?? undefined,
       blood_pressure: bp ? `${bp.bp_sys}/${bp.bp_dia}` : undefined,
       recorded_at: mostRecent?.time,
     };
