@@ -271,6 +271,9 @@ class SupervisorAgent(BaseAgent):
         critical_indicators = 0
 
         for vital in context.vitals[:10]:  # Check recent vitals
+            if not vital or not isinstance(vital, dict):
+                continue
+
             code = vital.get("code", "")
             value = vital.get("value")
 
@@ -298,6 +301,8 @@ class SupervisorAgent(BaseAgent):
 
             # Check BP components
             for comp in vital.get("components", []):
+                if not comp or not isinstance(comp, dict):
+                    continue
                 if comp.get("code") == "8480-6":  # Systolic
                     sys = comp.get("value")
                     if sys and (sys >= 180 or sys < 80):

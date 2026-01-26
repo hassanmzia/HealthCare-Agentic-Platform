@@ -233,8 +233,10 @@ class CardiologyAgent(BaseAgent):
         # Get latest vitals
         latest = {}
         for v in vitals:
+            if not v or not isinstance(v, dict):
+                continue
             code = v.get("code")
-            if code not in latest:
+            if code and code not in latest:
                 latest[code] = v
 
         # Heart Rate Analysis
@@ -473,8 +475,12 @@ class CardiologyAgent(BaseAgent):
         systolic = None
         if context.vitals:
             for v in context.vitals:
+                if not v or not isinstance(v, dict):
+                    continue
                 if v.get("code") == "85354-9":
                     for comp in v.get("components", []):
+                        if not comp or not isinstance(comp, dict):
+                            continue
                         if comp.get("code") == "8480-6":
                             systolic = comp.get("value")
                             break
