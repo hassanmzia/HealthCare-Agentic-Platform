@@ -247,6 +247,8 @@ class TreatmentAgent(BaseAgent):
         if not diagnoses and context.conditions:
             reasoning_steps.append("Step 1: Extracting diagnoses from patient conditions...")
             for condition in context.conditions:
+                if not condition or not isinstance(condition, dict):
+                    continue
                 icd10 = condition.get("code", "")
                 if icd10 in TREATMENT_PROTOCOLS:
                     diagnoses.append({
@@ -374,9 +376,9 @@ class TreatmentAgent(BaseAgent):
 Patient Context:
 - Age: {context.age or 'Unknown'}
 - Sex: {context.sex or 'Unknown'}
-- Current Medications: {', '.join([m.get('medication_name', '') for m in (context.medications or [])]) or 'None'}
-- Allergies: {', '.join([a.get('substance', '') for a in (context.allergies or [])]) or 'NKDA'}
-- Conditions: {', '.join([c.get('display', '') for c in (context.conditions or [])]) or 'None'}
+- Current Medications: {', '.join([m.get('medication_name', '') for m in (context.medications or []) if m and isinstance(m, dict)]) or 'None'}
+- Allergies: {', '.join([a.get('substance', '') for a in (context.allergies or []) if a and isinstance(a, dict)]) or 'NKDA'}
+- Conditions: {', '.join([c.get('display', '') for c in (context.conditions or []) if c and isinstance(c, dict)]) or 'None'}
 
 Proposed Treatments:
 {treatments_json}
@@ -480,8 +482,8 @@ Return JSON with personalized recommendations:
         safe = []
         contraindicated = []
 
-        allergies = [a.get("substance", "").lower() for a in (context.allergies or [])]
-        conditions = [c.get("display", "").lower() for c in (context.conditions or [])]
+        allergies = [a.get("substance", "").lower() for a in (context.allergies or []) if a and isinstance(a, dict)]
+        conditions = [c.get("display", "").lower() for c in (context.conditions or []) if c and isinstance(c, dict)]
 
         for tx in treatments:
             is_safe = True

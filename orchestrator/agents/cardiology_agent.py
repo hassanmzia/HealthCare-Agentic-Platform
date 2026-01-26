@@ -362,6 +362,8 @@ class CardiologyAgent(BaseAgent):
         # Check conditions
         has_hf_diagnosis = False
         for condition in (context.conditions or []):
+            if not condition or not isinstance(condition, dict):
+                continue
             if "heart failure" in condition.get("display", "").lower():
                 has_hf_diagnosis = True
                 break
@@ -374,7 +376,7 @@ class CardiologyAgent(BaseAgent):
         reasoning = ["Heart failure identified - recommending GDMT per 2022 AHA/ACC guidelines"]
 
         # Check current medications
-        current_meds = [m.get("medication_name", "").lower() for m in (context.medications or [])]
+        current_meds = [m.get("medication_name", "").lower() for m in (context.medications or []) if m and isinstance(m, dict)]
 
         # ACEi/ARB/ARNI
         has_raas = any(med in current_meds for med in ["lisinopril", "enalapril", "losartan", "valsartan", "entresto"])
@@ -492,6 +494,7 @@ class CardiologyAgent(BaseAgent):
         has_diabetes = any(
             "diabetes" in c.get("display", "").lower()
             for c in (context.conditions or [])
+            if c and isinstance(c, dict)
         )
 
         # Simplified risk calculation
