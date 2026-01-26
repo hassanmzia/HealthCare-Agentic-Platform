@@ -66,13 +66,22 @@ async def sync_patient_to_fhir(patient: Patient) -> str:
 
     async with httpx.AsyncClient(timeout=30) as client:
         if patient.fhir_id:
-            # Update existing
+            # Try to update existing
             fhir_patient["id"] = patient.fhir_id
             r = await client.put(
                 f"{FHIR_BASE}/Patient/{patient.fhir_id}",
                 json=fhir_patient,
                 headers=headers
             )
+            # If update fails (patient not found in FHIR), create new
+            if r.status_code not in (200, 201):
+                print(f"FHIR update failed ({r.status_code}), creating new patient")
+                del fhir_patient["id"]
+                r = await client.post(
+                    f"{FHIR_BASE}/Patient",
+                    json=fhir_patient,
+                    headers=headers
+                )
         else:
             # Create new
             r = await client.post(
@@ -333,3 +342,37 @@ class PatientByFHIRView(APIView):
         patient = get_object_or_404(Patient, fhir_id=fhir_id)
         serializer = PatientDetailSerializer(patient)
         return Response(serializer.data)
+
+
+class PatientResyncView(APIView):
+    """Resync a patient to FHIR."""
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request, patient_id):
+        """Force resync patient to FHIR server."""
+        patient = get_object_or_404(Patient, id=patient_id)
+        old_fhir_id = patient.fhir_id
+
+        try:
+            fhir_id = sync_patient_to_fhir_sync(patient)
+            if fhir_id:
+                patient.fhir_id = fhir_id
+                patient.save(update_fields=["fhir_id"])
+                return Response({
+                    "success": True,
+                    "patient_id": patient.id,
+                    "old_fhir_id": old_fhir_id,
+                    "new_fhir_id": fhir_id,
+                    "message": "Patient synced to FHIR successfully"
+                })
+            else:
+                return Response({
+                    "success": False,
+                    "message": "FHIR sync returned no ID"
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response({
+                "success": False,
+                "message": f"FHIR sync failed: {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
