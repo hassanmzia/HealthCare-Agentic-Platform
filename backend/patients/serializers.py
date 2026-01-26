@@ -33,6 +33,9 @@ class PatientDetailSerializer(serializers.ModelSerializer):
     age = serializers.ReadOnlyField()
     documents = PatientDocumentSerializer(many=True, read_only=True)
 
+    # Make mrn optional - it will be auto-generated if not provided
+    mrn = serializers.CharField(max_length=50, required=False, allow_blank=True)
+
     # Override phone fields to remove strict regex validation
     phone = serializers.CharField(max_length=17, required=False, allow_blank=True)
     phone_secondary = serializers.CharField(max_length=17, required=False, allow_blank=True)
