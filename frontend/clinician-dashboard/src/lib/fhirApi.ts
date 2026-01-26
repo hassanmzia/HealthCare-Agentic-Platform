@@ -12,14 +12,17 @@ export async function fetchObservations(params: {
   if (params.category) q["category"] = params.category;
   if (params.patientRef) {
     // Support both "Patient/123" format and just "123"
-    const ref = params.patientRef.includes("/")
-      ? params.patientRef
-      : `Patient/${params.patientRef}`;
-    q["subject"] = ref;
+    // For FHIR search, we can use either:
+    // - subject=Patient/123 (full reference)
+    // - subject:Patient=123 (typed search using modifier)
+    // Using the typed search format to avoid URL encoding issues with '/'
+    const id = params.patientRef.includes("/")
+      ? params.patientRef.split("/")[1]
+      : params.patientRef;
+    q["subject:Patient"] = id;
   }
 
-  const search = new URLSearchParams(q).toString();
-  const res = await fhir.get<FhirBundle<Observation>>(`/Observation?${search}`);
+  const res = await fhir.get<FhirBundle<Observation>>("/Observation", { params: q });
   return res.data;
 }
 
