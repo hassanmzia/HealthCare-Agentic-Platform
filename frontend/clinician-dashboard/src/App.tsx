@@ -2,9 +2,7 @@ import { useMemo, useState } from "react";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { PatientPicker } from "./components/PatientPicker";
 import { fetchObservations, normalizeVitals } from "./lib/fhirApi";
-import { fetchRecommendations } from "./lib/api";
 import { VitalsCharts } from "./components/VitalsCharts";
-import { RecommendationsPanel } from "./components/RecommendationsPanel";
 import { PatientList } from "./components/PatientList";
 import { PatientForm } from "./components/PatientForm";
 import { PatientImport } from "./components/PatientImport";
@@ -39,24 +37,14 @@ function VitalsDashboard() {
 
   const rows = useMemo(() => (obsQ.data ? normalizeVitals(obsQ.data) : []), [obsQ.data]);
 
-  const recQ = useQuery({
-    queryKey: ["recs", patientRef],
-    queryFn: () => fetchRecommendations(patientRef || undefined),
-    refetchInterval: 15000,
-  });
-
   return (
     <div style={{ padding: 16, display: "grid", gap: 12 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <PatientPicker patientRef={patientRef} onChange={setPatientRef} />
         <div style={{ display: "flex", gap: 10, fontSize: 12, color: "#666" }}>
           <span>Obs: {obsQ.isFetching ? "refreshing..." : "ready"}</span>
-          <span>Recs: {recQ.isFetching ? "refreshing..." : "ready"}</span>
           <button
-            onClick={() => {
-              obsQ.refetch();
-              recQ.refetch();
-            }}
+            onClick={() => obsQ.refetch()}
             style={{ padding: "7px 10px", borderRadius: 10, border: "1px solid #ddd", background: "#fafafa", cursor: "pointer" }}
           >
             Refresh now
@@ -73,20 +61,14 @@ function VitalsDashboard() {
         </div>
       ) : null}
 
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
-        <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ border: "1px solid #eee", borderRadius: 14, padding: 12 }}>
-            <div style={{ fontWeight: 700 }}>Vitals Timeline</div>
-            <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
-              Showing {rows.length} observations (category=vital-signs). Enter a Patient ref to scope results.
-            </div>
-          </div>
-
-          <VitalsCharts rows={rows} />
+      <div style={{ border: "1px solid #eee", borderRadius: 14, padding: 12 }}>
+        <div style={{ fontWeight: 700 }}>Vitals Timeline</div>
+        <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
+          Showing {rows.length} observations (category=vital-signs). Enter a Patient ref to scope results.
         </div>
-
-        <RecommendationsPanel items={recQ.data ?? []} />
       </div>
+
+      <VitalsCharts rows={rows} />
     </div>
   );
 }

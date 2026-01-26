@@ -14,6 +14,8 @@ import {
   ENCOUNTER_TYPES,
   NOTE_TYPES,
 } from "../lib/clinicalApi";
+import { fetchRecommendations, type Recommendation } from "../lib/api";
+import { RecommendationsPanel } from "./RecommendationsPanel";
 
 export function DoctorPortal() {
   const queryClient = useQueryClient();
@@ -21,7 +23,7 @@ export function DoctorPortal() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [showNewEncounter, setShowNewEncounter] = useState(false);
   const [showNewNote, setShowNewNote] = useState(false);
-  const [activeTab, setActiveTab] = useState<"overview" | "notes" | "encounters">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "notes" | "encounters" | "recommendations">("overview");
 
   // Fetch patients for search
   const patientsQuery = useQuery({
@@ -49,6 +51,14 @@ export function DoctorPortal() {
     queryKey: ["patient-encounters", selectedPatient?.id],
     queryFn: () => fetchEncounters({ patient: selectedPatient!.id, limit: 50 }),
     enabled: !!selectedPatient && activeTab === "encounters",
+  });
+
+  // Fetch AI recommendations for patient
+  const recommendationsQuery = useQuery({
+    queryKey: ["patient-recommendations", selectedPatient?.fhir_id],
+    queryFn: () => fetchRecommendations(selectedPatient?.fhir_id ? `Patient/${selectedPatient.fhir_id}` : undefined),
+    enabled: !!selectedPatient && activeTab === "recommendations",
+    refetchInterval: 30000,
   });
 
   const cardStyle = { border: "1px solid #eee", borderRadius: 12, padding: 16, marginBottom: 16 };
@@ -173,6 +183,7 @@ export function DoctorPortal() {
               <button style={tabStyle(activeTab === "overview")} onClick={() => setActiveTab("overview")}>Overview</button>
               <button style={tabStyle(activeTab === "notes")} onClick={() => setActiveTab("notes")}>Clinical Notes</button>
               <button style={tabStyle(activeTab === "encounters")} onClick={() => setActiveTab("encounters")}>Encounters</button>
+              <button style={tabStyle(activeTab === "recommendations")} onClick={() => setActiveTab("recommendations")}>AI Recommendations</button>
             </div>
 
             {/* Tab Content */}
@@ -198,6 +209,26 @@ export function DoctorPortal() {
                 encounters={encountersQuery.data?.results || []}
                 isLoading={encountersQuery.isLoading}
               />
+            )}
+
+            {activeTab === "recommendations" && (
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, color: "#666" }}>
+                    {selectedPatient?.fhir_id
+                      ? `Recommendations for Patient/${selectedPatient.fhir_id}`
+                      : "Patient not synced to FHIR - recommendations may be limited"}
+                  </div>
+                  <button
+                    onClick={() => recommendationsQuery.refetch()}
+                    disabled={recommendationsQuery.isFetching}
+                    style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #ddd", background: "#fafafa", cursor: "pointer", fontSize: 12 }}
+                  >
+                    {recommendationsQuery.isFetching ? "Refreshing..." : "Refresh"}
+                  </button>
+                </div>
+                <RecommendationsPanel items={recommendationsQuery.data ?? []} />
+              </div>
             )}
 
             {/* New Encounter Modal */}
