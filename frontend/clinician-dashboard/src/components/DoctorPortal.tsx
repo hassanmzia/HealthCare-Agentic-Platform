@@ -17,6 +17,7 @@ import {
 import { fetchRecommendations } from "../lib/api";
 import { fetchObservations, normalizeVitals } from "../lib/fhirApi";
 import { RecommendationsPanel } from "./RecommendationsPanel";
+import { ClinicalAssessmentPanel } from "./ClinicalAssessmentPanel";
 
 export function DoctorPortal() {
   const queryClient = useQueryClient();
@@ -24,7 +25,7 @@ export function DoctorPortal() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [showNewEncounter, setShowNewEncounter] = useState(false);
   const [showNewNote, setShowNewNote] = useState(false);
-  const [activeTab, setActiveTab] = useState<"overview" | "notes" | "encounters" | "recommendations">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "notes" | "encounters" | "recommendations" | "assessment">("overview");
 
   // Fetch patients for search
   const patientsQuery = useQuery({
@@ -231,6 +232,7 @@ export function DoctorPortal() {
               <button style={tabStyle(activeTab === "notes")} onClick={() => setActiveTab("notes")}>Clinical Notes</button>
               <button style={tabStyle(activeTab === "encounters")} onClick={() => setActiveTab("encounters")}>Encounters</button>
               <button style={tabStyle(activeTab === "recommendations")} onClick={() => setActiveTab("recommendations")}>AI Recommendations</button>
+              <button style={{ ...tabStyle(activeTab === "assessment"), background: activeTab === "assessment" ? "#eff6ff" : "transparent" }} onClick={() => setActiveTab("assessment")}>AI Assessment</button>
             </div>
 
             {/* Tab Content */}
@@ -276,6 +278,13 @@ export function DoctorPortal() {
                 </div>
                 <RecommendationsPanel items={recommendationsQuery.data ?? []} />
               </div>
+            )}
+
+            {activeTab === "assessment" && (
+              <ClinicalAssessmentPanel
+                patientId={String(selectedPatient.id)}
+                fhirId={selectedPatient.fhir_id}
+              />
             )}
 
             {/* New Encounter Modal */}

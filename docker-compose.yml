@@ -79,17 +79,33 @@ services:
     build: ./orchestrator
     command: uvicorn app:app --host 0.0.0.0 --port 8003
     environment:
-      # If orchestrator calls MCP adapter:
+      # MCP Server URLs
       MCP_FHIR_ADAPTER_URL: http://mcp-fhir-adapter:8002
+      MCP_FHIR_SERVER_URL: http://mcp-fhir-server:8005
+      MCP_LABS_SERVER_URL: http://mcp-labs-server:8006
+      MCP_RAG_SERVER_URL: http://mcp-rag-server:8007
+      MCP_PHARMACY_SERVER_URL: http://mcp-pharmacy-server:8008
       FHIR_BASE: http://hapi-fhir:8080/fhir
-      # Add LangSmith keys here if you use them
-      # LANGCHAIN_TRACING_V2: "true"
-      # LANGCHAIN_API_KEY: "..."
-      # LANGCHAIN_PROJECT: "health-agentic-platform"
+      # LLM Configuration
+      USE_LLM: "true"
+      LLM_PROVIDER: "claude"
+      OLLAMA_BASE_URL: "http://host.docker.internal:12434"
+      OLLAMA_MODEL: "deepseek-r1:7b"
+      CLAUDE_MODEL: "claude-sonnet-4-20250514"
+      LLM_TEMPERATURE: "0.3"
+      LLM_MAX_TOKENS: "2000"
+      # Add your API key via .env file or docker secrets
+      # ANTHROPIC_API_KEY: "..."
     ports:
       - "8003:8003"
     depends_on:
       mcp-fhir-adapter:
+        condition: service_started
+      mcp-fhir-server:
+        condition: service_started
+      mcp-labs-server:
+        condition: service_started
+      mcp-rag-server:
         condition: service_started
       redis:
         condition: service_healthy
@@ -124,6 +140,86 @@ services:
     depends_on:
       hapi-fhir:
         condition: service_started
+    networks: [healthnet]
+    restart: unless-stopped
+
+  # MCP FHIR Server - FHIR data access for agents
+  mcp-fhir-server:
+    build: ./mcp/servers
+    command: uvicorn mcp_fhir_server:app --host 0.0.0.0 --port 8005
+    environment:
+      FHIR_BASE: "http://hapi-fhir:8080/fhir"
+    ports:
+      - "8005:8005"
+    depends_on:
+      hapi-fhir:
+        condition: service_started
+    networks: [healthnet]
+    restart: unless-stopped
+
+  # MCP Labs Server - Lab results with interpretation
+  mcp-labs-server:
+    build: ./mcp/servers
+    command: uvicorn mcp_labs_server:app --host 0.0.0.0 --port 8006
+    environment:
+      FHIR_BASE: "http://hapi-fhir:8080/fhir"
+    ports:
+      - "8006:8006"
+    depends_on:
+      hapi-fhir:
+        condition: service_started
+    networks: [healthnet]
+    restart: unless-stopped
+
+  # MCP RAG Server - Clinical guidelines and knowledge base
+  mcp-rag-server:
+    build: ./mcp/servers
+    command: uvicorn mcp_rag_server:app --host 0.0.0.0 --port 8007
+    environment:
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: "8000"
+      DB_HOST: db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    ports:
+      - "8007:8007"
+    depends_on:
+      chromadb:
+        condition: service_started
+    networks: [healthnet]
+    restart: unless-stopped
+
+  # MCP Pharmacy Server - Drug formulary and prescriptions
+  mcp-pharmacy-server:
+    build: ./mcp/servers
+    command: uvicorn mcp_pharmacy_server:app --host 0.0.0.0 --port 8008
+    environment:
+      FHIR_BASE: "http://hapi-fhir:8080/fhir"
+      DB_HOST: db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      REQUIRE_AUTH: "false"
+      JWT_SECRET: "change-this-in-production"
+    ports:
+      - "8008:8008"
+    depends_on:
+      hapi-fhir:
+        condition: service_started
+      db:
+        condition: service_healthy
+    networks: [healthnet]
+    restart: unless-stopped
+
+  # ChromaDB - Vector database for RAG
+  chromadb:
+    image: chromadb/chroma:latest
+    environment:
+      CHROMA_SERVER_AUTH_PROVIDER: ""
+      ANONYMIZED_TELEMETRY: "false"
+    volumes:
+      - chromadata:/chroma/chroma
+    ports:
+      - "8009:8000"
     networks: [healthnet]
     restart: unless-stopped
 
@@ -166,4 +262,5 @@ networks:
 
 volumes:
   pgdata:
+  chromadata:
 
