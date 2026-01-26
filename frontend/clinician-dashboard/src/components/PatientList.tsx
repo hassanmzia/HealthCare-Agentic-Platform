@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchPatients, deletePatient, type Patient } from "../lib/patientApi";
+import { fetchPatients, deletePatient, resyncPatientToFhir, type Patient } from "../lib/patientApi";
 
 interface PatientListProps {
   onSelectPatient: (patient: Patient) => void;
@@ -24,6 +24,29 @@ export function PatientList({ onSelectPatient, onCreateNew, onImport }: PatientL
       queryClient.invalidateQueries({ queryKey: ["patients"] });
     },
   });
+
+  const [syncingPatientId, setSyncingPatientId] = useState<number | null>(null);
+
+  const resyncMutation = useMutation({
+    mutationFn: resyncPatientToFhir,
+    onSuccess: (result, patientId) => {
+      setSyncingPatientId(null);
+      if (result.success) {
+        queryClient.invalidateQueries({ queryKey: ["patients"] });
+      } else {
+        alert(`Sync failed: ${result.error || "Unknown error"}`);
+      }
+    },
+    onError: (error) => {
+      setSyncingPatientId(null);
+      alert(`Sync failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    },
+  });
+
+  const handleResync = (patient: Patient) => {
+    setSyncingPatientId(patient.id);
+    resyncMutation.mutate(patient.id);
+  };
 
   const handleDelete = (patient: Patient) => {
     if (confirm(`Are you sure you want to deactivate patient ${patient.full_name || patient.first_name}?`)) {
@@ -131,7 +154,25 @@ export function PatientList({ onSelectPatient, onCreateNew, onImport }: PatientL
                           {patient.fhir_id}
                         </span>
                       ) : (
-                        <span style={{ color: "#999", fontSize: 12 }}>Not synced</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleResync(patient);
+                          }}
+                          disabled={syncingPatientId === patient.id}
+                          style={{
+                            padding: "4px 10px",
+                            borderRadius: 4,
+                            border: "none",
+                            background: syncingPatientId === patient.id ? "#e5e7eb" : "#3b82f6",
+                            color: "white",
+                            cursor: syncingPatientId === patient.id ? "not-allowed" : "pointer",
+                            fontSize: 11,
+                            fontWeight: 500,
+                          }}
+                        >
+                          {syncingPatientId === patient.id ? "Syncing..." : "Sync to FHIR"}
+                        </button>
                       )}
                     </td>
                     <td style={{ padding: 12, borderBottom: "1px solid #eee", fontWeight: 500 }}>
