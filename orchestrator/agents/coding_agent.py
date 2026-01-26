@@ -377,7 +377,7 @@ class CodingAgent(BaseAgent):
             # Check for unspecified codes that could be more specific
             if code == "I10" and context.conditions:
                 # Check if there's heart or kidney involvement
-                conditions = [c.get("display", "").lower() for c in context.conditions]
+                conditions = [c.get("display", "").lower() for c in context.conditions if c and isinstance(c, dict)]
                 if any("heart" in c or "cardiac" in c for c in conditions):
                     warnings.append(f"Consider I11.9 (hypertensive heart disease) instead of {code}")
                 if any("kidney" in c or "renal" in c for c in conditions):
@@ -385,7 +385,7 @@ class CodingAgent(BaseAgent):
 
             if code == "E11.9":
                 # Check for diabetes complications
-                conditions = [c.get("display", "").lower() for c in (context.conditions or [])]
+                conditions = [c.get("display", "").lower() for c in (context.conditions or []) if c and isinstance(c, dict)]
                 if any("nephropathy" in c or "kidney" in c for c in conditions):
                     warnings.append(f"Consider E11.21 (DM with nephropathy) instead of {code}")
                 if any("neuropathy" in c for c in conditions):

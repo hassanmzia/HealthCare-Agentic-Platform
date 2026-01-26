@@ -129,7 +129,7 @@ class SafetyAgent(BaseAgent):
 
         # Step 1: Check drug-drug interactions
         reasoning_steps.append("Step 1: Checking drug-drug interactions...")
-        current_meds = [m.get("medication_name", "").lower() for m in (context.medications or [])]
+        current_meds = [m.get("medication_name", "").lower() for m in (context.medications or []) if m and isinstance(m, dict)]
         new_meds = self._extract_medications(treatments)
 
         interactions = self._check_interactions(current_meds, new_meds)
@@ -149,7 +149,7 @@ class SafetyAgent(BaseAgent):
 
         # Step 2: Check allergies
         reasoning_steps.append("Step 2: Checking allergy cross-reactivity...")
-        allergies = [a.get("substance", "").lower() for a in (context.allergies or [])]
+        allergies = [a.get("substance", "").lower() for a in (context.allergies or []) if a and isinstance(a, dict)]
         allergy_conflicts = self._check_allergy_cross_reactivity(allergies, new_meds)
 
         for conflict in allergy_conflicts:
@@ -273,7 +273,7 @@ class SafetyAgent(BaseAgent):
     def _check_contraindications(self, context: PatientContext, treatments: List) -> List[Dict]:
         """Check treatments against patient conditions"""
         contraindications = []
-        conditions = [c.get("display", "").lower() for c in (context.conditions or [])]
+        conditions = [c.get("display", "").lower() for c in (context.conditions or []) if c and isinstance(c, dict)]
 
         for t in treatments:
             if isinstance(t, dict):

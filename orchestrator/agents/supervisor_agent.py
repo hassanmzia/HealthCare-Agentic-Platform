@@ -257,6 +257,8 @@ class SupervisorAgent(BaseAgent):
 
         # Check for cardiac conditions
         for condition in (context.conditions or []):
+            if not condition or not isinstance(condition, dict):
+                continue
             display = condition.get("display", "").lower()
             if any(term in display for term in ["heart", "cardiac", "hypertension", "coronary", "arrhythmia"]):
                 return True

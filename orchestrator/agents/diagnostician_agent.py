@@ -278,9 +278,9 @@ class DiagnosticianAgent(BaseAgent):
     def _build_condition_context(self, context: PatientContext) -> dict:
         """Build context from current conditions and medications"""
         return {
-            "conditions": [c.get("display") for c in (context.conditions or [])],
-            "medications": [m.get("medication_name") for m in (context.medications or [])],
-            "allergies": [a.get("substance") for a in (context.allergies or [])]
+            "conditions": [c.get("display") for c in (context.conditions or []) if c and isinstance(c, dict)],
+            "medications": [m.get("medication_name") for m in (context.medications or []) if m and isinstance(m, dict)],
+            "allergies": [a.get("substance") for a in (context.allergies or []) if a and isinstance(a, dict)]
         }
 
     def _rule_based_differential(
@@ -377,13 +377,13 @@ Clinical Findings:
 {self._format_findings(findings)}
 
 Current Conditions:
-{', '.join([c.get('display', '') for c in (context.conditions or [])]) or 'None documented'}
+{', '.join([c.get('display', '') for c in (context.conditions or []) if c and isinstance(c, dict)]) or 'None documented'}
 
 Current Medications:
-{', '.join([m.get('medication_name', '') for m in (context.medications or [])]) or 'None documented'}
+{', '.join([m.get('medication_name', '') for m in (context.medications or []) if m and isinstance(m, dict)]) or 'None documented'}
 
 Allergies:
-{', '.join([a.get('substance', '') for a in (context.allergies or [])]) or 'NKDA'}
+{', '.join([a.get('substance', '') for a in (context.allergies or []) if a and isinstance(a, dict)]) or 'NKDA'}
 
 Please provide:
 1. Primary diagnosis with ICD-10 code and confidence (0-1)
