@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchPatients, type Patient } from "../lib/patientApi";
 import {
@@ -15,6 +15,7 @@ import {
   NOTE_TYPES,
 } from "../lib/clinicalApi";
 import { fetchRecommendations } from "../lib/api";
+import { fetchObservations, normalizeVitals } from "../lib/fhirApi";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 
 export function DoctorPortal() {
@@ -60,6 +61,51 @@ export function DoctorPortal() {
     enabled: !!selectedPatient && activeTab === "recommendations",
     refetchInterval: 30000,
   });
+
+  // Fetch FHIR vitals for patient
+  const fhirVitalsQuery = useQuery({
+    queryKey: ["patient-fhir-vitals", selectedPatient?.fhir_id],
+    queryFn: () => fetchObservations({
+      patientRef: `Patient/${selectedPatient!.fhir_id}`,
+      category: "vital-signs",
+      count: 100,
+    }),
+    enabled: !!selectedPatient?.fhir_id && activeTab === "overview",
+    refetchInterval: 30000,
+  });
+
+  // Normalize FHIR vitals to get latest values
+  const latestFhirVitals = useMemo(() => {
+    if (!fhirVitalsQuery.data) return null;
+    const rows = normalizeVitals(fhirVitalsQuery.data);
+    if (rows.length === 0) return null;
+
+    // Get the most recent value for each vital type
+    const latestByType: Record<string, typeof rows[0]> = {};
+    for (const row of rows) {
+      if (!latestByType[row.loinc] || row.time > latestByType[row.loinc].time) {
+        latestByType[row.loinc] = row;
+      }
+    }
+
+    // Map LOINC codes to vital names
+    const hr = latestByType["8867-4"]; // Heart Rate
+    const spo2 = latestByType["59408-5"]; // SpO2
+    const temp = latestByType["8310-5"]; // Temperature
+    const rr = latestByType["9279-1"]; // Respiratory Rate
+    const bp = latestByType["85354-9"]; // Blood Pressure
+
+    const mostRecent = rows[rows.length - 1];
+
+    return {
+      heart_rate: hr?.value,
+      oxygen_saturation: spo2?.value,
+      temperature: temp?.value,
+      respiratory_rate: rr?.value,
+      blood_pressure: bp ? `${bp.bp_sys}/${bp.bp_dia}` : undefined,
+      recorded_at: mostRecent?.time,
+    };
+  }, [fhirVitalsQuery.data]);
 
   const cardStyle = { border: "1px solid #eee", borderRadius: 12, padding: 16, marginBottom: 16 };
   const tabStyle = (active: boolean) => ({
@@ -188,7 +234,7 @@ export function DoctorPortal() {
 
             {/* Tab Content */}
             {activeTab === "overview" && summaryQuery.data && (
-              <PatientOverview summary={summaryQuery.data} />
+              <PatientOverview summary={summaryQuery.data} fhirVitals={latestFhirVitals} />
             )}
 
             {activeTab === "notes" && (
@@ -264,38 +310,57 @@ export function DoctorPortal() {
   );
 }
 
+// FHIR Vitals type
+type FhirVitals = {
+  heart_rate?: number;
+  oxygen_saturation?: number;
+  temperature?: number;
+  respiratory_rate?: number;
+  blood_pressure?: string;
+  recorded_at?: string;
+} | null;
+
 // Patient Overview Component
-function PatientOverview({ summary }: { summary: PatientClinicalSummary }) {
+function PatientOverview({ summary, fhirVitals }: { summary: PatientClinicalSummary; fhirVitals?: FhirVitals }) {
   const cardStyle = { border: "1px solid #eee", borderRadius: 12, padding: 16, marginBottom: 16 };
+
+  // Prefer FHIR vitals over backend vitals
+  const vitals = fhirVitals || summary.latest_vitals;
+  const hasVitals = vitals && (vitals.heart_rate || vitals.blood_pressure || vitals.oxygen_saturation || vitals.temperature || vitals.respiratory_rate);
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
       {/* Latest Vitals */}
       <div style={cardStyle}>
-        <h4 style={{ marginTop: 0, marginBottom: 12 }}>Latest Vitals</h4>
-        {summary.latest_vitals ? (
+        <h4 style={{ marginTop: 0, marginBottom: 12 }}>
+          Latest Vitals
+          {fhirVitals && <span style={{ fontSize: 11, color: "#2563eb", marginLeft: 8 }}>(from FHIR)</span>}
+        </h4>
+        {hasVitals ? (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {summary.latest_vitals.heart_rate && (
-              <VitalItem label="Heart Rate" value={`${summary.latest_vitals.heart_rate} bpm`} />
+            {vitals.heart_rate && (
+              <VitalItem label="Heart Rate" value={`${vitals.heart_rate} bpm`} />
             )}
-            {summary.latest_vitals.blood_pressure && (
-              <VitalItem label="Blood Pressure" value={`${summary.latest_vitals.blood_pressure} mmHg`} />
+            {vitals.blood_pressure && (
+              <VitalItem label="Blood Pressure" value={`${vitals.blood_pressure} mmHg`} />
             )}
-            {summary.latest_vitals.oxygen_saturation && (
-              <VitalItem label="SpO2" value={`${summary.latest_vitals.oxygen_saturation}%`} />
+            {vitals.oxygen_saturation && (
+              <VitalItem label="SpO2" value={`${vitals.oxygen_saturation}%`} />
             )}
-            {summary.latest_vitals.temperature && (
-              <VitalItem label="Temperature" value={`${summary.latest_vitals.temperature}°C`} />
+            {vitals.temperature && (
+              <VitalItem label="Temperature" value={`${vitals.temperature}°C`} />
             )}
-            {summary.latest_vitals.respiratory_rate && (
-              <VitalItem label="Resp. Rate" value={`${summary.latest_vitals.respiratory_rate} /min`} />
+            {vitals.respiratory_rate && (
+              <VitalItem label="Resp. Rate" value={`${vitals.respiratory_rate} /min`} />
             )}
-            <div style={{ gridColumn: "1 / -1", fontSize: 11, color: "#999", marginTop: 8 }}>
-              Recorded: {new Date(summary.latest_vitals.recorded_at).toLocaleString()}
-            </div>
+            {vitals.recorded_at && (
+              <div style={{ gridColumn: "1 / -1", fontSize: 11, color: "#999", marginTop: 8 }}>
+                Recorded: {new Date(vitals.recorded_at).toLocaleString()}
+              </div>
+            )}
           </div>
         ) : (
-          <div style={{ color: "#999", fontSize: 13 }}>No vitals recorded</div>
+          <div style={{ color: "#999", fontSize: 13 }}>No vitals recorded. Start the IoT simulator to generate vitals.</div>
         )}
       </div>
 
