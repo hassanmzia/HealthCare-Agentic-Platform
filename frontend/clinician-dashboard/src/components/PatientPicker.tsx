@@ -12,7 +12,7 @@ export function PatientPicker(props: {
       <input
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
-        placeholder='e.g. Patient/123 (leave blank for all)'
+        placeholder='e.g. 1201 or Patient/1201 (blank for all)'
         style={{ padding: "8px 10px", border: "1px solid #ddd", borderRadius: 8, width: 260 }}
       />
       <button
