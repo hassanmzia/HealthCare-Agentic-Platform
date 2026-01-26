@@ -6,6 +6,7 @@ from .views import (
     PatientDocumentListView,
     PatientByMRNView,
     PatientByFHIRView,
+    PatientResyncView,
 )
 
 urlpatterns = [
@@ -15,6 +16,9 @@ urlpatterns = [
 
     # Import
     path("import/", PatientImportView.as_view(), name="patient-import"),
+
+    # FHIR sync
+    path("<int:patient_id>/resync/", PatientResyncView.as_view(), name="patient-resync"),
 
     # Documents
     path("<int:patient_id>/documents/", PatientDocumentListView.as_view(), name="patient-documents"),
