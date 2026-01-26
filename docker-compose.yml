@@ -146,9 +146,11 @@ services:
   # MCP FHIR Server - FHIR data access for agents
   mcp-fhir-server:
     build: ./mcp/servers
-    command: uvicorn mcp_fhir_server:app --host 0.0.0.0 --port 8005
+    command: uvicorn mcp_fhir_server:app --host 0.0.0.0 --port 8005 --reload
     environment:
       FHIR_BASE: "http://hapi-fhir:8080/fhir"
+    volumes:
+      - ./mcp/servers:/app
     ports:
       - "8005:8005"
     depends_on:
@@ -160,9 +162,11 @@ services:
   # MCP Labs Server - Lab results with interpretation
   mcp-labs-server:
     build: ./mcp/servers
-    command: uvicorn mcp_labs_server:app --host 0.0.0.0 --port 8006
+    command: uvicorn mcp_labs_server:app --host 0.0.0.0 --port 8006 --reload
     environment:
       FHIR_BASE: "http://hapi-fhir:8080/fhir"
+    volumes:
+      - ./mcp/servers:/app
     ports:
       - "8006:8006"
     depends_on:
@@ -174,13 +178,15 @@ services:
   # MCP RAG Server - Clinical guidelines and knowledge base
   mcp-rag-server:
     build: ./mcp/servers
-    command: uvicorn mcp_rag_server:app --host 0.0.0.0 --port 8007
+    command: uvicorn mcp_rag_server:app --host 0.0.0.0 --port 8007 --reload
     environment:
       CHROMA_HOST: chromadb
       CHROMA_PORT: "8000"
       DB_HOST: db
       DB_USER: postgres
       DB_PASSWORD: postgres
+    volumes:
+      - ./mcp/servers:/app
     ports:
       - "8007:8007"
     depends_on:
@@ -192,7 +198,7 @@ services:
   # MCP Pharmacy Server - Drug formulary and prescriptions
   mcp-pharmacy-server:
     build: ./mcp/servers
-    command: uvicorn mcp_pharmacy_server:app --host 0.0.0.0 --port 8008
+    command: uvicorn mcp_pharmacy_server:app --host 0.0.0.0 --port 8008 --reload
     environment:
       FHIR_BASE: "http://hapi-fhir:8080/fhir"
       DB_HOST: db
@@ -200,6 +206,8 @@ services:
       DB_PASSWORD: postgres
       REQUIRE_AUTH: "false"
       JWT_SECRET: "change-this-in-production"
+    volumes:
+      - ./mcp/servers:/app
     ports:
       - "8008:8008"
     depends_on:
