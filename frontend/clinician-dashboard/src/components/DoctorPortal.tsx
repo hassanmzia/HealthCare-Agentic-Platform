@@ -14,7 +14,7 @@ import {
   ENCOUNTER_TYPES,
   NOTE_TYPES,
 } from "../lib/clinicalApi";
-import { fetchRecommendations, type Recommendation } from "../lib/api";
+import { fetchRecommendations } from "../lib/api";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 
 export function DoctorPortal() {
