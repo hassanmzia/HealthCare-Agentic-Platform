@@ -4,15 +4,20 @@ Provides common functionality for all MCP servers
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 from pydantic import BaseModel
-from fastapi import FastAPI, HTTPException, Header, Request
+from fastapi import FastAPI, HTTPException, Header, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import time
 import uuid
+import os
 from datetime import datetime
 from functools import wraps
+
+# Import auth and audit modules
+from .auth import get_current_user, AuthenticatedUser, require_permission, REQUIRE_AUTH
+from .audit import audit_logger, log_mcp_tool_call, AuditEntry, AuditEventType, AuditSeverity
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -160,21 +165,41 @@ class BaseMCPServer(ABC):
         async def invoke_tool(
             tool_name: str,
             request: Request,
-            authorization: str = Header(default=None)
+            authorization: str = Header(default=None),
+            user: Optional[AuthenticatedUser] = Depends(get_current_user)
         ):
-            """Invoke a tool"""
+            """Invoke a tool with authentication and audit logging"""
             if tool_name not in self.tools:
                 raise HTTPException(status_code=404, detail=f"Tool {tool_name} not found")
 
             start_time = time.time()
             body = await request.json()
 
+            # Get user info from auth or request body
+            user_id = user.user_id if user else body.get("user_id", "anonymous")
+
+            # Get client IP
+            client_ip = request.client.host if request.client else None
+            forwarded = request.headers.get("X-Forwarded-For")
+            if forwarded:
+                client_ip = forwarded.split(",")[0].strip()
+
             mcp_request = MCPRequest(
                 tool_name=tool_name,
                 arguments=body.get("arguments", body),
                 patient_id=body.get("patient_id"),
-                user_id=body.get("user_id"),
+                user_id=user_id,
                 session_id=body.get("session_id")
+            )
+
+            # Log tool invocation
+            await log_mcp_tool_call(
+                tool_name=tool_name,
+                user_id=user_id,
+                patient_id=mcp_request.patient_id,
+                request_id=mcp_request.request_id,
+                arguments=mcp_request.arguments,
+                ip_address=client_ip
             )
 
             try:
@@ -182,8 +207,8 @@ class BaseMCPServer(ABC):
                 result = await self.tools[tool_name](mcp_request)
                 execution_time = (time.time() - start_time) * 1000
 
-                # Audit log
-                await self._audit_log(mcp_request, True)
+                # Audit log success
+                await self._audit_log(mcp_request, True, ip_address=client_ip)
 
                 return MCPResponse(
                     request_id=mcp_request.request_id,
@@ -195,7 +220,7 @@ class BaseMCPServer(ABC):
 
             except Exception as e:
                 logger.error(f"Tool {tool_name} failed: {str(e)}")
-                await self._audit_log(mcp_request, False, str(e))
+                await self._audit_log(mcp_request, False, str(e), ip_address=client_ip)
 
                 return MCPResponse(
                     request_id=mcp_request.request_id,
@@ -237,21 +262,27 @@ class BaseMCPServer(ABC):
             return wrapper
         return decorator
 
-    async def _audit_log(self, request: MCPRequest, success: bool, error: str = None):
-        """Log access for HIPAA compliance"""
-        entry = AuditLogEntry(
+    async def _audit_log(self, request: MCPRequest, success: bool, error: str = None, ip_address: str = None):
+        """Log access for HIPAA compliance - persists to PostgreSQL"""
+        entry = AuditEntry(
+            event_type=AuditEventType.MCP_TOOL_SUCCESS if success else AuditEventType.MCP_TOOL_ERROR,
             timestamp=datetime.utcnow(),
-            request_id=request.request_id,
             user_id=request.user_id or "system",
-            patient_id=request.patient_id or "unknown",
-            tool_name=request.tool_name,
-            action="tool_invocation",
+            action=f"mcp:{request.tool_name}",
+            patient_id=request.patient_id,
+            request_id=request.request_id,
+            session_id=request.session_id,
             resource_type=self.name,
+            resource_id=request.tool_name,
             success=success,
-            error_message=error
+            severity=AuditSeverity.INFO if success else AuditSeverity.ERROR,
+            error_message=error,
+            ip_address=ip_address,
+            phi_accessed=request.patient_id is not None
         )
-        logger.info(f"AUDIT: {entry.dict()}")
-        # In production, persist to audit database
+
+        # Persist to database via audit logger
+        await audit_logger.log(entry)
 
     @abstractmethod
     def setup_tools(self):

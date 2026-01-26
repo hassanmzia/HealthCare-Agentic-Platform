@@ -84,6 +84,7 @@ services:
       MCP_FHIR_SERVER_URL: http://mcp-fhir-server:8005
       MCP_LABS_SERVER_URL: http://mcp-labs-server:8006
       MCP_RAG_SERVER_URL: http://mcp-rag-server:8007
+      MCP_PHARMACY_SERVER_URL: http://mcp-pharmacy-server:8008
       FHIR_BASE: http://hapi-fhir:8080/fhir
       # LLM Configuration
       USE_LLM: "true"
@@ -174,8 +175,51 @@ services:
   mcp-rag-server:
     build: ./mcp/servers
     command: uvicorn mcp_rag_server:app --host 0.0.0.0 --port 8007
+    environment:
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: "8000"
+      DB_HOST: db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
     ports:
       - "8007:8007"
+    depends_on:
+      chromadb:
+        condition: service_started
+    networks: [healthnet]
+    restart: unless-stopped
+
+  # MCP Pharmacy Server - Drug formulary and prescriptions
+  mcp-pharmacy-server:
+    build: ./mcp/servers
+    command: uvicorn mcp_pharmacy_server:app --host 0.0.0.0 --port 8008
+    environment:
+      FHIR_BASE: "http://hapi-fhir:8080/fhir"
+      DB_HOST: db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      REQUIRE_AUTH: "false"
+      JWT_SECRET: "change-this-in-production"
+    ports:
+      - "8008:8008"
+    depends_on:
+      hapi-fhir:
+        condition: service_started
+      db:
+        condition: service_healthy
+    networks: [healthnet]
+    restart: unless-stopped
+
+  # ChromaDB - Vector database for RAG
+  chromadb:
+    image: chromadb/chroma:latest
+    environment:
+      CHROMA_SERVER_AUTH_PROVIDER: ""
+      ANONYMIZED_TELEMETRY: "false"
+    volumes:
+      - chromadata:/chroma/chroma
+    ports:
+      - "8009:8000"
     networks: [healthnet]
     restart: unless-stopped
 
@@ -218,4 +262,5 @@ networks:
 
 volumes:
   pgdata:
+  chromadata:
 
