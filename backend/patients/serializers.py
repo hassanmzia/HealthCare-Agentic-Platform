@@ -33,6 +33,23 @@ class PatientDetailSerializer(serializers.ModelSerializer):
     age = serializers.ReadOnlyField()
     documents = PatientDocumentSerializer(many=True, read_only=True)
 
+    def to_internal_value(self, data):
+        """Convert empty strings to None for non-text fields."""
+        # Make a mutable copy
+        data = data.copy() if hasattr(data, 'copy') else dict(data)
+
+        # Fields that should convert empty string to None
+        nullable_fields = ['date_of_birth', 'ssn', 'phone', 'phone_secondary', 'email']
+        for field in nullable_fields:
+            if field in data and data[field] == '':
+                if field == 'date_of_birth':
+                    # date_of_birth is required, so remove empty string to trigger required validation
+                    pass
+                else:
+                    data[field] = None
+
+        return super().to_internal_value(data)
+
     class Meta:
         model = Patient
         fields = [

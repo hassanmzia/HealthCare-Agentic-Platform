@@ -77,12 +77,23 @@ export function PatientForm({ patient, onClose, onSuccess }: PatientFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const data = {
+    const rawData = {
       ...formData,
       allergies: allergiesText.split(",").map((s) => s.trim()).filter(Boolean),
       medications: medicationsText.split(",").map((s) => s.trim()).filter(Boolean),
       medical_conditions: conditionsText.split(",").map((s) => s.trim()).filter(Boolean),
     };
+
+    // Filter out empty strings to avoid validation errors
+    // Keep required fields and non-empty values
+    const requiredFields = ['first_name', 'last_name', 'date_of_birth'];
+    const data: Partial<Patient> = {};
+    for (const [key, value] of Object.entries(rawData)) {
+      if (requiredFields.includes(key) || (value !== '' && value !== null && value !== undefined)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (data as any)[key] = value;
+      }
+    }
 
     if (isEditing && patient) {
       updateMutation.mutate({ id: patient.id, data });
@@ -115,7 +126,7 @@ export function PatientForm({ patient, onClose, onSuccess }: PatientFormProps) {
         <form onSubmit={handleSubmit} style={{ padding: 20 }}>
           {error && (
             <div style={{ padding: 12, background: "#ffe5e5", borderRadius: 8, color: "#9b1c1c", marginBottom: 20 }}>
-              Failed to save patient. Please check the form and try again.
+              Failed to save patient: {(error as Error).message || "Please check the form and try again."}
             </div>
           )}
 
