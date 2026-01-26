@@ -104,6 +104,7 @@ export function PatientList({ onSelectPatient, onCreateNew, onImport }: PatientL
               <thead>
                 <tr style={{ background: "#f9f9f9" }}>
                   <th style={{ padding: 12, textAlign: "left", borderBottom: "1px solid #eee" }}>MRN</th>
+                  <th style={{ padding: 12, textAlign: "left", borderBottom: "1px solid #eee" }}>FHIR ID</th>
                   <th style={{ padding: 12, textAlign: "left", borderBottom: "1px solid #eee" }}>Name</th>
                   <th style={{ padding: 12, textAlign: "left", borderBottom: "1px solid #eee" }}>DOB / Age</th>
                   <th style={{ padding: 12, textAlign: "left", borderBottom: "1px solid #eee" }}>Gender</th>
@@ -116,6 +117,23 @@ export function PatientList({ onSelectPatient, onCreateNew, onImport }: PatientL
                 {data.results.map((patient) => (
                   <tr key={patient.id} style={{ cursor: "pointer" }} onClick={() => onSelectPatient(patient)}>
                     <td style={{ padding: 12, borderBottom: "1px solid #eee", fontFamily: "monospace" }}>{patient.mrn}</td>
+                    <td style={{ padding: 12, borderBottom: "1px solid #eee" }}>
+                      {patient.fhir_id ? (
+                        <span
+                          style={{ fontFamily: "monospace", background: "#e0f2fe", padding: "2px 6px", borderRadius: 4, cursor: "pointer" }}
+                          title="Click to copy Patient/{fhir_id}"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(`Patient/${patient.fhir_id}`);
+                            alert(`Copied: Patient/${patient.fhir_id}`);
+                          }}
+                        >
+                          {patient.fhir_id}
+                        </span>
+                      ) : (
+                        <span style={{ color: "#999", fontSize: 12 }}>Not synced</span>
+                      )}
+                    </td>
                     <td style={{ padding: 12, borderBottom: "1px solid #eee", fontWeight: 500 }}>
                       {patient.full_name || `${patient.first_name} ${patient.last_name}`}
                     </td>
@@ -144,7 +162,7 @@ export function PatientList({ onSelectPatient, onCreateNew, onImport }: PatientL
                 ))}
                 {data.results.length === 0 && (
                   <tr>
-                    <td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#666" }}>
+                    <td colSpan={8} style={{ padding: 40, textAlign: "center", color: "#666" }}>
                       No patients found. Create a new patient or import from JSON.
                     </td>
                   </tr>
