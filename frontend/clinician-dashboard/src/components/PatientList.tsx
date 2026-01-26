@@ -29,7 +29,7 @@ export function PatientList({ onSelectPatient, onCreateNew, onImport }: PatientL
 
   const resyncMutation = useMutation({
     mutationFn: resyncPatientToFhir,
-    onSuccess: (result, patientId) => {
+    onSuccess: (result) => {
       setSyncingPatientId(null);
       if (result.success) {
         queryClient.invalidateQueries({ queryKey: ["patients"] });
