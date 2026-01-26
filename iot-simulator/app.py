@@ -33,8 +33,10 @@ app.add_middleware(
 # Configuration
 BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:8000")
 MCP_ADAPTER_URL = os.getenv("MCP_ADAPTER_URL", "http://mcp-fhir-adapter:8002")
+ORCHESTRATOR_URL = os.getenv("ORCHESTRATOR_URL", "http://orchestrator:8003")
 DEFAULT_INTERVAL = int(os.getenv("DEFAULT_INTERVAL", "30"))  # seconds
 ENABLE_ALERTS = os.getenv("ENABLE_ALERTS", "true").lower() == "true"
+ENABLE_AI_RECOMMENDATIONS = os.getenv("ENABLE_AI_RECOMMENDATIONS", "true").lower() == "true"
 
 # Simulator state
 class SimulatorState:
@@ -123,6 +125,55 @@ LOINC_TO_VITAL_TYPE = {
     "9279-1": "respiratory_rate",
     "2339-0": "glucose",
 }
+
+
+async def generate_ai_recommendation(patient_fhir_id: str, vitals: dict) -> bool:
+    """Call orchestrator to generate AI recommendations based on vitals."""
+    if not ENABLE_AI_RECOMMENDATIONS:
+        return False
+
+    try:
+        # Convert vitals dict to orchestrator format
+        readings = {}
+        for vital_name, vital_data in vitals.items():
+            value = vital_data.get("value")
+            if value is None:
+                continue
+            # Map vital names to orchestrator keys
+            if vital_name == "heart_rate":
+                readings["HR"] = value
+            elif vital_name == "respiratory_rate":
+                readings["RR"] = value
+            elif vital_name == "spo2":
+                readings["SpO2"] = value
+            elif vital_name == "temperature":
+                readings["TempC"] = value
+            elif vital_name == "blood_pressure_systolic":
+                readings["BP_SYS"] = value
+            elif vital_name == "blood_pressure_diastolic":
+                readings["BP_DIA"] = value
+
+        if not readings:
+            return False
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                f"{ORCHESTRATOR_URL}/analyze-vitals",
+                json={
+                    "patient_id": patient_fhir_id,
+                    "readings": readings
+                }
+            )
+            if resp.status_code == 200:
+                result = resp.json()
+                logger.info(f"AI recommendation generated for {patient_fhir_id}: {result.get('severity', 'info')} - {result.get('title', '')}")
+                return True
+            else:
+                logger.error(f"Failed to generate AI recommendation: {resp.status_code} - {resp.text}")
+                return False
+    except Exception as e:
+        logger.error(f"Error generating AI recommendation: {e}")
+        return False
 
 
 async def check_vitals_for_alerts(patient_id: int, device_id: str, vitals: dict, fhir_obs_id: str = "") -> int:
@@ -214,6 +265,9 @@ async def generate_and_send_vitals():
         # Check vitals against alert rules
         alerts = await check_vitals_for_alerts(patient_id, device_id, vitals)
         state.alerts_generated += alerts
+
+        # Generate AI recommendation via orchestrator
+        await generate_ai_recommendation(patient_fhir_id, vitals)
 
         logger.info(f"Generated {len(observations)} observations for device {device_id} -> patient {patient_fhir_id} (alerts: {alerts})")
 
