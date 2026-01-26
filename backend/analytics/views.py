@@ -28,7 +28,7 @@ class OverviewStatsView(APIView):
 
         # Patient stats
         total_patients = Patient.objects.count()
-        active_patients = Patient.objects.filter(is_active=True).count()
+        active_patients = Patient.objects.filter(status="active").count()
         new_patients_week = Patient.objects.filter(created_at__gte=week_ago).count()
 
         # Device stats
@@ -346,7 +346,7 @@ class PatientAnalyticsView(APIView):
 
         # Basic stats
         total_patients = Patient.objects.count()
-        active_patients = Patient.objects.filter(is_active=True).count()
+        active_patients = Patient.objects.filter(status="active").count()
 
         # Gender distribution
         gender_dist = dict(
