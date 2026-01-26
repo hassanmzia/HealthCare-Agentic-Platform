@@ -16,8 +16,13 @@ from datetime import datetime
 from functools import wraps
 
 # Import auth and audit modules
-from .auth import get_current_user, AuthenticatedUser, require_permission, REQUIRE_AUTH
-from .audit import audit_logger, log_mcp_tool_call, AuditEntry, AuditEventType, AuditSeverity
+# Support both package import and direct execution
+try:
+    from .auth import get_current_user, AuthenticatedUser, require_permission, REQUIRE_AUTH
+    from .audit import audit_logger, log_mcp_tool_call, AuditEntry, AuditEventType, AuditSeverity
+except ImportError:
+    from auth import get_current_user, AuthenticatedUser, require_permission, REQUIRE_AUTH
+    from audit import audit_logger, log_mcp_tool_call, AuditEntry, AuditEventType, AuditSeverity
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
