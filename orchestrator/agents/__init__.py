@@ -3,13 +3,17 @@ Multi-Agent Healthcare System
 
 This package contains specialized AI agents for clinical decision support:
 
-Agents:
+Core Agents:
 - SupervisorAgent: Orchestrates all specialist agents
 - DiagnosticianAgent: Generates differential diagnoses with ICD-10 codes
 - TreatmentAgent: Creates treatment plans with CPT codes
-- (Future) TriageAgent: Urgency assessment
-- (Future) SafetyAgent: Drug interaction and allergy checking
-- (Future) Specialist Agents: Cardiology, Oncology, etc.
+
+Safety & Compliance:
+- SafetyAgent: Drug interaction and allergy checking
+- CodingAgent: ICD-10 and CPT code validation
+
+Specialist Agents:
+- CardiologyAgent: Cardiovascular conditions and GDMT
 
 A2A Protocol:
 Agents communicate using a standardized message format (AgentMessage)
@@ -32,6 +36,9 @@ from .base_agent import (
 from .diagnostician_agent import DiagnosticianAgent
 from .treatment_agent import TreatmentAgent
 from .supervisor_agent import SupervisorAgent, ComprehensiveRecommendation
+from .safety_agent import SafetyAgent
+from .coding_agent import CodingAgent
+from .cardiology_agent import CardiologyAgent
 
 __all__ = [
     # Base classes
@@ -46,10 +53,17 @@ __all__ = [
     "AgentOutput",
     "MCPClient",
 
-    # Agents
+    # Core Agents
     "DiagnosticianAgent",
     "TreatmentAgent",
     "SupervisorAgent",
+
+    # Safety & Compliance
+    "SafetyAgent",
+    "CodingAgent",
+
+    # Specialist Agents
+    "CardiologyAgent",
 
     # Outputs
     "ComprehensiveRecommendation"

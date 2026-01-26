@@ -10,9 +10,9 @@ from .base_agent import (
     BaseAgent, PatientContext, AgentOutput, AgentCapability,
     ClinicalFinding, DiagnosisRecommendation, TreatmentRecommendation
 )
+from ..llm import get_clinical_llm, ClinicalLLM
 
 USE_LLM = os.getenv("USE_LLM", "true").lower() == "true"
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
 
 # Treatment protocols for common diagnoses
@@ -198,13 +198,14 @@ class TreatmentAgent(BaseAgent):
         )
         self.specialties = ["internal_medicine", "primary_care"]
 
-        self.llm = None
-        if USE_LLM and ANTHROPIC_API_KEY:
+        # Initialize unified LLM client
+        self.llm: Optional[ClinicalLLM] = None
+        if USE_LLM:
             try:
-                from anthropic import Anthropic
-                self.llm = Anthropic(api_key=ANTHROPIC_API_KEY)
-            except ImportError:
-                pass
+                self.llm = get_clinical_llm()
+            except Exception as e:
+                import logging
+                logging.warning(f"Failed to initialize LLM: {e}")
 
     def _setup_capabilities(self):
         self.capabilities = [
@@ -348,7 +349,78 @@ class TreatmentAgent(BaseAgent):
         context: PatientContext
     ) -> List[TreatmentRecommendation]:
         """Use LLM to personalize treatment recommendations"""
-        # For now, return as-is. In production, use LLM to adjust dosing, etc.
+        if not self.llm or not treatments:
+            return treatments
+
+        try:
+            # Build prompt for treatment personalization
+            treatments_json = [
+                {
+                    "type": t.treatment_type,
+                    "description": t.description,
+                    "priority": t.priority,
+                    "rationale": t.rationale
+                }
+                for t in treatments
+            ]
+
+            prompt = f"""Review and personalize these treatment recommendations for this patient.
+
+Patient Context:
+- Age: {context.age or 'Unknown'}
+- Sex: {context.sex or 'Unknown'}
+- Current Medications: {', '.join([m.get('medication_name', '') for m in (context.medications or [])]) or 'None'}
+- Allergies: {', '.join([a.get('substance', '') for a in (context.allergies or [])]) or 'NKDA'}
+- Conditions: {', '.join([c.get('display', '') for c in (context.conditions or [])]) or 'None'}
+
+Proposed Treatments:
+{treatments_json}
+
+Consider:
+1. Age-appropriate dosing adjustments
+2. Drug-drug interactions with current medications
+3. Contraindications based on existing conditions
+4. Allergy cross-reactivity concerns
+
+Return JSON with personalized recommendations:
+{{
+    "treatments": [
+        {{
+            "original_index": 0,
+            "adjusted_description": "...",
+            "dosing_notes": "...",
+            "warnings": []
+        }}
+    ]
+}}"""
+
+            response = await self.llm.generate(
+                prompt=prompt,
+                task_type="treatment_personalization",
+                patient_id=context.patient_id,
+                json_mode=True
+            )
+
+            content = response["content"]
+            start = content.find("{")
+            end = content.rfind("}") + 1
+            if start >= 0 and end > start:
+                import json
+                data = json.loads(content[start:end])
+
+                # Apply personalization to treatments
+                for adjustment in data.get("treatments", []):
+                    idx = adjustment.get("original_index", 0)
+                    if idx < len(treatments):
+                        if adjustment.get("adjusted_description"):
+                            treatments[idx].description = adjustment["adjusted_description"]
+                        if adjustment.get("dosing_notes"):
+                            treatments[idx].rationale += f" | {adjustment['dosing_notes']}"
+
+        except Exception as e:
+            import logging
+            logging.warning(f"LLM treatment enhancement failed: {e}")
+
         return treatments
 
     async def _check_interactions(

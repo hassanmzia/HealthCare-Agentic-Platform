@@ -15,6 +15,9 @@ from .base_agent import (
 )
 from .diagnostician_agent import DiagnosticianAgent
 from .treatment_agent import TreatmentAgent
+from .safety_agent import SafetyAgent
+from .coding_agent import CodingAgent
+from .cardiology_agent import CardiologyAgent
 
 
 class ComprehensiveRecommendation(BaseModel):
@@ -73,18 +76,28 @@ class SupervisorAgent(BaseAgent):
             agent_id="supervisor",
             name="Clinical Supervisor",
             description="Orchestrates specialist agents for comprehensive clinical decision support",
-            version="1.0.0"
+            version="2.0.0"
         )
         self.specialties = ["orchestration", "clinical_decision_support"]
 
-        # Initialize specialist agents
+        # Initialize core agents
         self.diagnostician = DiagnosticianAgent()
         self.treatment = TreatmentAgent()
+
+        # Initialize safety and compliance agents
+        self.safety = SafetyAgent()
+        self.coding = CodingAgent()
+
+        # Initialize specialist agents
+        self.cardiology = CardiologyAgent()
 
         # Agent registry for A2A communication
         self.agents = {
             "diagnostician": self.diagnostician,
-            "treatment": self.treatment
+            "treatment": self.treatment,
+            "safety": self.safety,
+            "coding": self.coding,
+            "cardiology": self.cardiology
         }
 
     def _setup_capabilities(self):
@@ -111,6 +124,8 @@ class SupervisorAgent(BaseAgent):
         all_treatments = []
         all_warnings = []
         agent_outputs = {}
+        all_icd10_codes = []
+        all_cpt_codes = []
 
         try:
             # Step 1: Triage - Quick urgency assessment
@@ -128,8 +143,21 @@ class SupervisorAgent(BaseAgent):
             all_warnings.extend(diag_output.warnings)
             reasoning_steps.extend([f"[Diagnostician] {r}" for r in diag_output.reasoning_steps])
 
-            # Step 3: Run Treatment Agent with diagnoses
-            reasoning_steps.append("\n=== Step 3: Treatment Planning ===")
+            # Step 3: Check for cardiac involvement - run Cardiology Agent
+            cardiac_indicators = self._check_cardiac_involvement(context, diag_output.findings)
+            if cardiac_indicators:
+                reasoning_steps.append("\n=== Step 3a: Cardiology Specialist Review ===")
+                cardio_output = await self.cardiology.process(context)
+                agent_outputs["cardiology"] = cardio_output.dict()
+
+                all_findings.extend(cardio_output.findings)
+                all_diagnoses.extend(cardio_output.diagnoses)
+                all_treatments.extend(cardio_output.treatments)
+                all_warnings.extend(cardio_output.warnings)
+                reasoning_steps.extend([f"[Cardiology] {r}" for r in cardio_output.reasoning_steps])
+
+            # Step 4: Run Treatment Agent with diagnoses
+            reasoning_steps.append("\n=== Step 4: Treatment Planning ===")
             treatment_task = {"diagnoses": [d.dict() for d in all_diagnoses]}
             treatment_output = await self.treatment.process(context, treatment_task)
             agent_outputs["treatment"] = treatment_output.dict()
@@ -138,8 +166,33 @@ class SupervisorAgent(BaseAgent):
             all_warnings.extend(treatment_output.warnings)
             reasoning_steps.extend([f"[Treatment] {r}" for r in treatment_output.reasoning_steps])
 
-            # Step 4: Aggregate and validate
-            reasoning_steps.append("\n=== Step 4: Validation & Aggregation ===")
+            # Step 5: Safety Check - Run Safety Agent
+            reasoning_steps.append("\n=== Step 5: Safety Validation ===")
+            safety_task = {"treatments": [t.dict() for t in all_treatments]}
+            safety_output = await self.safety.process(context, safety_task)
+            agent_outputs["safety"] = safety_output.dict()
+
+            all_findings.extend(safety_output.findings)
+            all_warnings.extend(safety_output.warnings)
+            reasoning_steps.extend([f"[Safety] {r}" for r in safety_output.reasoning_steps])
+
+            # Step 6: Clinical Coding - Run Coding Agent
+            reasoning_steps.append("\n=== Step 6: Clinical Coding ===")
+            coding_task = {
+                "diagnoses": [d.dict() for d in all_diagnoses],
+                "treatments": [t.dict() for t in all_treatments],
+                "findings": [f.dict() for f in all_findings]
+            }
+            coding_output = await self.coding.process(context, coding_task)
+            agent_outputs["coding"] = coding_output.dict()
+
+            all_icd10_codes.extend(coding_output.icd10_codes)
+            all_cpt_codes.extend(coding_output.cpt_codes)
+            all_warnings.extend(coding_output.warnings)
+            reasoning_steps.extend([f"[Coding] {r}" for r in coding_output.reasoning_steps])
+
+            # Step 7: Aggregate and validate
+            reasoning_steps.append("\n=== Step 7: Validation & Aggregation ===")
             recommendation = self._aggregate_outputs(
                 context=context,
                 findings=all_findings,
@@ -151,8 +204,14 @@ class SupervisorAgent(BaseAgent):
                 urgency=urgency
             )
 
-            # Step 5: Final quality check
-            reasoning_steps.append("\n=== Step 5: Quality Check ===")
+            # Override codes with coding agent's validated codes
+            if all_icd10_codes:
+                recommendation.icd10_codes = all_icd10_codes
+            if all_cpt_codes:
+                recommendation.cpt_codes = all_cpt_codes
+
+            # Step 8: Final quality check
+            reasoning_steps.append("\n=== Step 8: Quality Check ===")
             recommendation = self._quality_check(recommendation)
 
             # Convert to AgentOutput
@@ -185,6 +244,24 @@ class SupervisorAgent(BaseAgent):
                 requires_human_review=True,
                 review_reason=f"System error: {e}"
             )
+
+    def _check_cardiac_involvement(self, context: PatientContext, findings: List[ClinicalFinding]) -> bool:
+        """Check if cardiology specialist review is needed"""
+        # Check for cardiac-related findings
+        for finding in findings:
+            name_lower = finding.name.lower()
+            if any(term in name_lower for term in ["heart", "blood pressure", "cardiac", "chest"]):
+                return True
+            if finding.name == "Heart Rate" and finding.status in ["abnormal", "critical"]:
+                return True
+
+        # Check for cardiac conditions
+        for condition in (context.conditions or []):
+            display = condition.get("display", "").lower()
+            if any(term in display for term in ["heart", "cardiac", "hypertension", "coronary", "arrhythmia"]):
+                return True
+
+        return False
 
     def _quick_triage(self, context: PatientContext) -> str:
         """Quick triage based on vitals"""

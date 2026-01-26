@@ -5,15 +5,16 @@ Uses LLM for clinical reasoning and MCP-RAG for guideline references.
 """
 
 import os
+import json
 from typing import List, Optional
 from .base_agent import (
     BaseAgent, PatientContext, AgentOutput, AgentCapability,
     ClinicalFinding, DiagnosisRecommendation
 )
+from ..llm import get_clinical_llm, ClinicalLLM
 
 # LLM Configuration
 USE_LLM = os.getenv("USE_LLM", "true").lower() == "true"
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
 
 class DiagnosticianAgent(BaseAgent):
@@ -33,14 +34,14 @@ class DiagnosticianAgent(BaseAgent):
         )
         self.specialties = ["internal_medicine", "emergency_medicine", "primary_care"]
 
-        # Initialize LLM if available
-        self.llm = None
-        if USE_LLM and ANTHROPIC_API_KEY:
+        # Initialize unified LLM client
+        self.llm: Optional[ClinicalLLM] = None
+        if USE_LLM:
             try:
-                from anthropic import Anthropic
-                self.llm = Anthropic(api_key=ANTHROPIC_API_KEY)
-            except ImportError:
-                pass
+                self.llm = get_clinical_llm()
+            except Exception as e:
+                import logging
+                logging.warning(f"Failed to initialize LLM: {e}")
 
     def _setup_capabilities(self):
         self.capabilities = [
@@ -357,7 +358,7 @@ class DiagnosticianAgent(BaseAgent):
             return self._rule_based_differential(context, findings)
 
         # Build prompt
-        prompt = f"""You are an experienced physician. Analyze this patient data and provide a differential diagnosis.
+        prompt = f"""Analyze this patient data and provide a differential diagnosis.
 
 Patient Information:
 - Age: {context.age or 'Unknown'}
@@ -394,15 +395,15 @@ Format your response as JSON:
 }}"""
 
         try:
-            response = self.llm.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=1000,
-                messages=[{"role": "user", "content": prompt}]
+            # Use unified LLM interface
+            response = await self.llm.generate(
+                prompt=prompt,
+                task_type="differential_diagnosis",
+                patient_id=context.patient_id,
+                json_mode=True
             )
 
-            # Parse response
-            import json
-            content = response.content[0].text
+            content = response["content"]
 
             # Extract JSON from response
             start = content.find("{")
