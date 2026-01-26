@@ -72,8 +72,8 @@ class PatientContext(BaseModel):
     date_of_birth: Optional[str] = None
 
     # Current state
-    vitals: Optional[dict] = None
-    labs: Optional[dict] = None
+    vitals: Optional[List[dict]] = None
+    labs: Optional[List[dict]] = None
     medications: Optional[List[dict]] = None
     allergies: Optional[List[dict]] = None
     conditions: Optional[List[dict]] = None
