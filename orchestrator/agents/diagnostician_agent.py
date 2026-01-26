@@ -136,8 +136,10 @@ class DiagnosticianAgent(BaseAgent):
         # Get latest vitals by type
         latest = {}
         for v in vitals:
+            if not v or not isinstance(v, dict):
+                continue
             code = v.get("code")
-            if code not in latest:
+            if code and code not in latest:
                 latest[code] = v
 
         # Heart Rate
@@ -166,10 +168,12 @@ class DiagnosticianAgent(BaseAgent):
             ))
 
         # Blood Pressure (from BP panel)
-        bp = latest.get("85354-9", {})
+        bp = latest.get("85354-9") or {}
         sys = None
         dia = None
         for comp in bp.get("components", []):
+            if not comp or not isinstance(comp, dict):
+                continue
             if comp.get("code") == "8480-6":
                 sys = comp.get("value")
             elif comp.get("code") == "8462-4":
