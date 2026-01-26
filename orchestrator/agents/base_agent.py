@@ -344,6 +344,8 @@ class BaseAgent(ABC):
         findings: List[ClinicalFinding] = None,
         diagnoses: List[DiagnosisRecommendation] = None,
         treatments: List[TreatmentRecommendation] = None,
+        icd10_codes: List[dict] = None,
+        cpt_codes: List[dict] = None,
         confidence: float = 0.0,
         reasoning: List[str] = None,
         warnings: List[str] = None,
@@ -351,6 +353,14 @@ class BaseAgent(ABC):
         review_reason: str = None
     ) -> AgentOutput:
         """Helper to create standardized agent output"""
+        # Use provided codes or auto-generate from diagnoses/treatments
+        final_icd10 = icd10_codes if icd10_codes is not None else [
+            {"code": d.icd10_code, "description": d.diagnosis} for d in (diagnoses or [])
+        ]
+        final_cpt = cpt_codes if cpt_codes is not None else [
+            {"code": t.cpt_code, "description": t.description} for t in (treatments or []) if t.cpt_code
+        ]
+
         return AgentOutput(
             agent_id=self.agent_id,
             agent_name=self.name,
@@ -359,8 +369,8 @@ class BaseAgent(ABC):
             findings=findings or [],
             diagnoses=diagnoses or [],
             treatments=treatments or [],
-            icd10_codes=[{"code": d.icd10_code, "description": d.diagnosis} for d in (diagnoses or [])],
-            cpt_codes=[{"code": t.cpt_code, "description": t.description} for t in (treatments or []) if t.cpt_code],
+            icd10_codes=final_icd10,
+            cpt_codes=final_cpt,
             confidence=confidence,
             reasoning_steps=reasoning or [],
             warnings=warnings or [],
