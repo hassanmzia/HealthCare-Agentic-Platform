@@ -10,7 +10,7 @@ interface PatientListProps {
 
 export function PatientList({ onSelectPatient, onCreateNew, onImport }: PatientListProps) {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("active");
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
