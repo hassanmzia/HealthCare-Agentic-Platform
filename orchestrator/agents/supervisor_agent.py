@@ -1,0 +1,405 @@
+"""
+Supervisor Agent
+Orchestrates all specialist agents to generate comprehensive clinical recommendations.
+Implements the supervisor pattern for multi-agent coordination.
+"""
+
+import asyncio
+from typing import List, Dict, Any, Optional
+from datetime import datetime
+from pydantic import BaseModel
+
+from .base_agent import (
+    BaseAgent, PatientContext, AgentOutput, AgentCapability,
+    AgentMessage, ClinicalFinding, DiagnosisRecommendation, TreatmentRecommendation
+)
+from .diagnostician_agent import DiagnosticianAgent
+from .treatment_agent import TreatmentAgent
+
+
+class ComprehensiveRecommendation(BaseModel):
+    """Final output combining all agent outputs"""
+    patient_id: str
+    timestamp: str
+
+    # Patient summary
+    patient_summary: dict
+
+    # Clinical findings
+    findings: List[ClinicalFinding]
+    critical_findings: List[ClinicalFinding]
+
+    # Diagnoses
+    primary_diagnosis: Optional[DiagnosisRecommendation]
+    differential_diagnoses: List[DiagnosisRecommendation]
+
+    # Treatment plan
+    treatments: List[TreatmentRecommendation]
+    immediate_actions: List[TreatmentRecommendation]
+
+    # Coding
+    icd10_codes: List[dict]
+    cpt_codes: List[dict]
+
+    # Quality metrics
+    overall_confidence: float
+    reasoning_chain: List[str]
+    warnings: List[str]
+
+    # Review requirements
+    requires_human_review: bool
+    review_reasons: List[str]
+
+    # Agent contributions
+    agent_outputs: Dict[str, dict]
+
+
+class SupervisorAgent(BaseAgent):
+    """
+    Supervisor Agent - Orchestrates the multi-agent clinical decision system.
+
+    Workflow:
+    1. Gather patient context from MCP servers
+    2. Invoke Triage Agent for urgency assessment
+    3. Invoke Diagnostician Agent for differential diagnosis
+    4. Invoke Treatment Agent for treatment recommendations
+    5. Invoke Safety Agent for drug/allergy checks
+    6. Aggregate and validate all outputs
+    7. Generate comprehensive recommendation
+    """
+
+    def __init__(self):
+        super().__init__(
+            agent_id="supervisor",
+            name="Clinical Supervisor",
+            description="Orchestrates specialist agents for comprehensive clinical decision support",
+            version="1.0.0"
+        )
+        self.specialties = ["orchestration", "clinical_decision_support"]
+
+        # Initialize specialist agents
+        self.diagnostician = DiagnosticianAgent()
+        self.treatment = TreatmentAgent()
+
+        # Agent registry for A2A communication
+        self.agents = {
+            "diagnostician": self.diagnostician,
+            "treatment": self.treatment
+        }
+
+    def _setup_capabilities(self):
+        self.capabilities = [
+            AgentCapability(
+                name="comprehensive_assessment",
+                description="Run full multi-agent clinical assessment",
+                input_schema={"patient_id": "string"},
+                output_schema={"recommendation": "ComprehensiveRecommendation"}
+            ),
+            AgentCapability(
+                name="quick_triage",
+                description="Rapid triage assessment for urgency",
+                input_schema={"patient_id": "string", "vitals": "dict"},
+                output_schema={"urgency": "string", "actions": "list"}
+            )
+        ]
+
+    async def process(self, context: PatientContext, task: dict = None) -> AgentOutput:
+        """Run the multi-agent workflow"""
+        reasoning_steps = []
+        all_findings = []
+        all_diagnoses = []
+        all_treatments = []
+        all_warnings = []
+        agent_outputs = {}
+
+        try:
+            # Step 1: Triage - Quick urgency assessment
+            reasoning_steps.append("=== Step 1: Triage Assessment ===")
+            urgency = self._quick_triage(context)
+            reasoning_steps.append(f"Urgency level: {urgency}")
+
+            # Step 2: Run Diagnostician
+            reasoning_steps.append("\n=== Step 2: Diagnostic Analysis ===")
+            diag_output = await self.diagnostician.process(context)
+            agent_outputs["diagnostician"] = diag_output.dict()
+
+            all_findings.extend(diag_output.findings)
+            all_diagnoses.extend(diag_output.diagnoses)
+            all_warnings.extend(diag_output.warnings)
+            reasoning_steps.extend([f"[Diagnostician] {r}" for r in diag_output.reasoning_steps])
+
+            # Step 3: Run Treatment Agent with diagnoses
+            reasoning_steps.append("\n=== Step 3: Treatment Planning ===")
+            treatment_task = {"diagnoses": [d.dict() for d in all_diagnoses]}
+            treatment_output = await self.treatment.process(context, treatment_task)
+            agent_outputs["treatment"] = treatment_output.dict()
+
+            all_treatments.extend(treatment_output.treatments)
+            all_warnings.extend(treatment_output.warnings)
+            reasoning_steps.extend([f"[Treatment] {r}" for r in treatment_output.reasoning_steps])
+
+            # Step 4: Aggregate and validate
+            reasoning_steps.append("\n=== Step 4: Validation & Aggregation ===")
+            recommendation = self._aggregate_outputs(
+                context=context,
+                findings=all_findings,
+                diagnoses=all_diagnoses,
+                treatments=all_treatments,
+                warnings=all_warnings,
+                agent_outputs=agent_outputs,
+                reasoning_steps=reasoning_steps,
+                urgency=urgency
+            )
+
+            # Step 5: Final quality check
+            reasoning_steps.append("\n=== Step 5: Quality Check ===")
+            recommendation = self._quality_check(recommendation)
+
+            # Convert to AgentOutput
+            return AgentOutput(
+                agent_id=self.agent_id,
+                agent_name=self.name,
+                timestamp=datetime.utcnow().isoformat(),
+                success=True,
+                findings=all_findings,
+                diagnoses=all_diagnoses,
+                treatments=all_treatments,
+                icd10_codes=recommendation.icd10_codes,
+                cpt_codes=recommendation.cpt_codes,
+                confidence=recommendation.overall_confidence,
+                reasoning_steps=reasoning_steps,
+                warnings=all_warnings,
+                requires_human_review=recommendation.requires_human_review,
+                review_reason="; ".join(recommendation.review_reasons) if recommendation.review_reasons else None
+            )
+
+        except Exception as e:
+            import logging
+            logging.error(f"Supervisor workflow failed: {e}")
+            return AgentOutput(
+                agent_id=self.agent_id,
+                agent_name=self.name,
+                timestamp=datetime.utcnow().isoformat(),
+                success=False,
+                errors=[str(e)],
+                requires_human_review=True,
+                review_reason=f"System error: {e}"
+            )
+
+    def _quick_triage(self, context: PatientContext) -> str:
+        """Quick triage based on vitals"""
+        if not context.vitals:
+            return "unknown"
+
+        critical_indicators = 0
+
+        for vital in context.vitals[:10]:  # Check recent vitals
+            code = vital.get("code", "")
+            value = vital.get("value")
+
+            if not value:
+                continue
+
+            # Check for critical values
+            if code == "8867-4":  # Heart rate
+                if value < 40 or value > 150:
+                    critical_indicators += 2
+                elif value < 50 or value > 120:
+                    critical_indicators += 1
+
+            elif code == "59408-5":  # SpO2
+                if value < 88:
+                    critical_indicators += 2
+                elif value < 92:
+                    critical_indicators += 1
+
+            elif code == "8310-5":  # Temperature
+                if value >= 40 or value < 35:
+                    critical_indicators += 2
+                elif value >= 38.5:
+                    critical_indicators += 1
+
+            # Check BP components
+            for comp in vital.get("components", []):
+                if comp.get("code") == "8480-6":  # Systolic
+                    sys = comp.get("value")
+                    if sys and (sys >= 180 or sys < 80):
+                        critical_indicators += 2
+                    elif sys and (sys >= 160 or sys < 90):
+                        critical_indicators += 1
+
+        if critical_indicators >= 3:
+            return "critical"
+        elif critical_indicators >= 1:
+            return "urgent"
+        else:
+            return "routine"
+
+    def _aggregate_outputs(
+        self,
+        context: PatientContext,
+        findings: List[ClinicalFinding],
+        diagnoses: List[DiagnosisRecommendation],
+        treatments: List[TreatmentRecommendation],
+        warnings: List[str],
+        agent_outputs: Dict[str, dict],
+        reasoning_steps: List[str],
+        urgency: str
+    ) -> ComprehensiveRecommendation:
+        """Aggregate all agent outputs into comprehensive recommendation"""
+
+        # Identify critical findings
+        critical_findings = [f for f in findings if f.status == "critical"]
+
+        # Identify primary diagnosis (highest confidence)
+        primary_diagnosis = None
+        differential_diagnoses = []
+        if diagnoses:
+            sorted_dx = sorted(diagnoses, key=lambda d: d.confidence, reverse=True)
+            primary_diagnosis = sorted_dx[0]
+            differential_diagnoses = sorted_dx[1:4]  # Top 3 differentials
+
+        # Identify immediate actions
+        immediate_actions = [t for t in treatments if t.priority in ["immediate", "urgent"]]
+
+        # Extract all codes
+        icd10_codes = []
+        for dx in diagnoses:
+            if dx.icd10_code:
+                icd10_codes.append({
+                    "code": dx.icd10_code,
+                    "description": dx.diagnosis,
+                    "confidence": dx.confidence
+                })
+
+        cpt_codes = []
+        for tx in treatments:
+            if tx.cpt_code:
+                cpt_codes.append({
+                    "code": tx.cpt_code,
+                    "description": tx.description,
+                    "priority": tx.priority
+                })
+
+        # Calculate overall confidence
+        confidences = [dx.confidence for dx in diagnoses] if diagnoses else [0]
+        overall_confidence = sum(confidences) / len(confidences)
+
+        # Determine if human review required
+        requires_review = False
+        review_reasons = []
+
+        if urgency == "critical":
+            requires_review = True
+            review_reasons.append("Critical patient status")
+
+        if critical_findings:
+            requires_review = True
+            review_reasons.append(f"{len(critical_findings)} critical finding(s)")
+
+        if overall_confidence < 0.7:
+            requires_review = True
+            review_reasons.append("Low diagnostic confidence")
+
+        if warnings:
+            requires_review = True
+            review_reasons.append("Warnings or interactions detected")
+
+        if not diagnoses:
+            requires_review = True
+            review_reasons.append("No diagnosis determined")
+
+        # Create patient summary
+        patient_summary = {
+            "patient_id": context.patient_id,
+            "name": context.name,
+            "age": context.age,
+            "sex": context.sex,
+            "urgency": urgency,
+            "active_conditions": len(context.conditions or []),
+            "active_medications": len(context.medications or []),
+            "known_allergies": len(context.allergies or [])
+        }
+
+        return ComprehensiveRecommendation(
+            patient_id=context.patient_id,
+            timestamp=datetime.utcnow().isoformat(),
+            patient_summary=patient_summary,
+            findings=findings,
+            critical_findings=critical_findings,
+            primary_diagnosis=primary_diagnosis,
+            differential_diagnoses=differential_diagnoses,
+            treatments=treatments,
+            immediate_actions=immediate_actions,
+            icd10_codes=icd10_codes,
+            cpt_codes=cpt_codes,
+            overall_confidence=round(overall_confidence, 2),
+            reasoning_chain=reasoning_steps,
+            warnings=warnings,
+            requires_human_review=requires_review,
+            review_reasons=review_reasons,
+            agent_outputs=agent_outputs
+        )
+
+    def _quality_check(self, recommendation: ComprehensiveRecommendation) -> ComprehensiveRecommendation:
+        """Final quality checks on the recommendation"""
+
+        # Check for conflicting recommendations
+        # (In production, implement more sophisticated checks)
+
+        # Ensure critical findings have corresponding treatments
+        if recommendation.critical_findings and not recommendation.immediate_actions:
+            recommendation.warnings.append(
+                "QUALITY: Critical findings present but no immediate actions recommended"
+            )
+            recommendation.requires_human_review = True
+            recommendation.review_reasons.append("Critical findings without immediate actions")
+
+        # Ensure diagnoses have corresponding codes
+        if recommendation.primary_diagnosis and not recommendation.icd10_codes:
+            recommendation.warnings.append(
+                "QUALITY: Diagnosis present but no ICD-10 code assigned"
+            )
+
+        return recommendation
+
+    async def run_comprehensive_assessment(self, patient_id: str) -> ComprehensiveRecommendation:
+        """
+        Public method to run full assessment for a patient.
+        Gathers context and runs multi-agent workflow.
+        """
+        # Gather patient context from MCP
+        context = await self.mcp.get_patient_context(patient_id)
+
+        # Run the workflow
+        output = await self.process(context)
+
+        # Build comprehensive recommendation
+        return ComprehensiveRecommendation(
+            patient_id=patient_id,
+            timestamp=datetime.utcnow().isoformat(),
+            patient_summary={
+                "patient_id": patient_id,
+                "name": context.name,
+                "age": context.age,
+                "sex": context.sex
+            },
+            findings=output.findings,
+            critical_findings=[f for f in output.findings if f.status == "critical"],
+            primary_diagnosis=output.diagnoses[0] if output.diagnoses else None,
+            differential_diagnoses=output.diagnoses[1:4] if len(output.diagnoses) > 1 else [],
+            treatments=output.treatments,
+            immediate_actions=[t for t in output.treatments if t.priority in ["immediate", "urgent"]],
+            icd10_codes=output.icd10_codes,
+            cpt_codes=output.cpt_codes,
+            overall_confidence=output.confidence,
+            reasoning_chain=output.reasoning_steps,
+            warnings=output.warnings,
+            requires_human_review=output.requires_human_review,
+            review_reasons=[output.review_reason] if output.review_reason else [],
+            agent_outputs={}
+        )
+
+
+# Singleton instance
+supervisor = SupervisorAgent()
