@@ -138,3 +138,11 @@ export async function fetchPatientDocuments(
   );
   return res.data;
 }
+
+// Resync patient to FHIR
+export async function resyncPatientToFhir(patientId: number): Promise<{ success: boolean; new_fhir_id?: string; error?: string }> {
+  const res = await api.post<{ success: boolean; new_fhir_id?: string; error?: string }>(
+    `/api/v1/patients/${patientId}/resync/`
+  );
+  return res.data;
+}
