@@ -74,8 +74,66 @@ export function PatientForm({ patient, onClose, onSuccess }: PatientFormProps) {
     },
   });
 
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const validateForm = (): string | null => {
+    // Validate date of birth format (YYYY-MM-DD)
+    const dob = formData.date_of_birth || "";
+    if (!dob) {
+      return "Date of birth is required.";
+    }
+
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(dob)) {
+      return "Date of birth must be in YYYY-MM-DD format.";
+    }
+
+    const [yearStr, monthStr, dayStr] = dob.split("-");
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    const day = parseInt(dayStr, 10);
+
+    // Validate year is reasonable (between 1900 and current year)
+    const currentYear = new Date().getFullYear();
+    if (year < 1900 || year > currentYear) {
+      return `Year must be between 1900 and ${currentYear}.`;
+    }
+
+    // Validate month and day
+    if (month < 1 || month > 12) {
+      return "Invalid month in date of birth.";
+    }
+    if (day < 1 || day > 31) {
+      return "Invalid day in date of birth.";
+    }
+
+    // Check if the date is valid
+    const dateObj = new Date(year, month - 1, day);
+    if (dateObj.getFullYear() !== year || dateObj.getMonth() !== month - 1 || dateObj.getDate() !== day) {
+      return "Invalid date of birth.";
+    }
+
+    // Validate required fields
+    if (!formData.first_name?.trim()) {
+      return "First name is required.";
+    }
+    if (!formData.last_name?.trim()) {
+      return "Last name is required.";
+    }
+
+    return null;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
+
+    // Validate form before submitting
+    const error = validateForm();
+    if (error) {
+      setValidationError(error);
+      return;
+    }
 
     const rawData = {
       ...formData,
@@ -124,9 +182,9 @@ export function PatientForm({ patient, onClose, onSuccess }: PatientFormProps) {
         </div>
 
         <form onSubmit={handleSubmit} style={{ padding: 20 }}>
-          {error && (
+          {(error || validationError) && (
             <div style={{ padding: 12, background: "#ffe5e5", borderRadius: 8, color: "#9b1c1c", marginBottom: 20 }}>
-              Failed to save patient: {(error as Error).message || "Please check the form and try again."}
+              {validationError || `Failed to save patient: ${(error as Error).message || "Please check the form and try again."}`}
             </div>
           )}
 
