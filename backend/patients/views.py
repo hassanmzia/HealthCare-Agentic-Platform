@@ -140,8 +140,10 @@ class PatientListView(APIView):
 
     def post(self, request):
         """Create a new patient."""
+        print(f"[DEBUG] Patient creation request data: {request.data}")
         serializer = PatientDetailSerializer(data=request.data)
         if not serializer.is_valid():
+            print(f"[DEBUG] Validation errors: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         # Generate MRN if not provided
