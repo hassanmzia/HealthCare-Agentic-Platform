@@ -6,7 +6,12 @@ Uses vector store for semantic search over medical knowledge
 
 import os
 from typing import Optional, List
-from .base import BaseMCPServer, MCPRequest
+
+# Support both package import and direct execution
+try:
+    from .base import BaseMCPServer, MCPRequest
+except ImportError:
+    from base import BaseMCPServer, MCPRequest
 
 # In production, use actual vector DB (Pinecone, Weaviate, ChromaDB)
 # This is a simplified implementation for demonstration

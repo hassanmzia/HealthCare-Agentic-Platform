@@ -6,7 +6,12 @@ Provides access to pharmacy data, drug formulary, prescriptions, and medication 
 import os
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
-from .base import BaseMCPServer, MCPRequest
+
+# Support both package import and direct execution
+try:
+    from .base import BaseMCPServer, MCPRequest
+except ImportError:
+    from base import BaseMCPServer, MCPRequest
 
 FHIR_BASE = os.getenv("FHIR_BASE", "http://hapi-fhir:8080/fhir")
 

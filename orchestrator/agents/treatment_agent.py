@@ -10,7 +10,12 @@ from .base_agent import (
     BaseAgent, PatientContext, AgentOutput, AgentCapability,
     ClinicalFinding, DiagnosisRecommendation, TreatmentRecommendation
 )
-from ..llm import get_clinical_llm, ClinicalLLM
+
+# Support both package import and direct execution
+try:
+    from ..llm import get_clinical_llm, ClinicalLLM
+except ImportError:
+    from llm import get_clinical_llm, ClinicalLLM
 
 USE_LLM = os.getenv("USE_LLM", "true").lower() == "true"
 
