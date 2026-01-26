@@ -55,9 +55,10 @@ export function DoctorPortal() {
   });
 
   // Fetch AI recommendations for patient
+  // Note: recommendations are stored with just the FHIR ID (e.g., "1201"), not "Patient/1201"
   const recommendationsQuery = useQuery({
     queryKey: ["patient-recommendations", selectedPatient?.fhir_id],
-    queryFn: () => fetchRecommendations(selectedPatient?.fhir_id ? `Patient/${selectedPatient.fhir_id}` : undefined),
+    queryFn: () => fetchRecommendations(selectedPatient?.fhir_id || undefined),
     enabled: !!selectedPatient && activeTab === "recommendations",
     refetchInterval: 30000,
   });
