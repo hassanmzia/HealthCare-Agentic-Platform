@@ -247,12 +247,12 @@ function AssessmentResults({
                 {reviewStatusColors[reviewState.reviewStatus].label}
               </div>
             )}
-            {assessment.requires_human_review && reviewState.reviewStatus === "pending" && (
+            {reviewState.reviewStatus === "pending" && (
               <button
                 onClick={onStartReview}
                 style={{
                   padding: "8px 16px",
-                  background: isReviewing ? "#64748b" : "#059669",
+                  background: isReviewing ? "#64748b" : assessment.requires_human_review ? "#dc2626" : "#059669",
                   color: "white",
                   border: "none",
                   borderRadius: 6,
@@ -261,7 +261,7 @@ function AssessmentResults({
                   cursor: "pointer",
                 }}
               >
-                {isReviewing ? "Reviewing..." : "Start Review"}
+                {isReviewing ? "Reviewing..." : assessment.requires_human_review ? "Review Required" : "Start Review"}
               </button>
             )}
           </div>
