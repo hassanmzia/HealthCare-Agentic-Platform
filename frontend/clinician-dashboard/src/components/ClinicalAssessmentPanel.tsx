@@ -191,7 +191,7 @@ export function ClinicalAssessmentPanel({ patientId, fhirId }: Props) {
 
     try {
       await reviewMutation.mutateAsync({
-        assessment_id: String(assessment.assessment.persisted_recommendation_id),
+        assessment_id: assessment.assessment.assessment_id || String(assessment.assessment.persisted_recommendation_id),
         physician_id: "physician-001", // In production, get from auth context
         physician_name: "Dr. Review Physician",
         physician_npi: "1234567890",
