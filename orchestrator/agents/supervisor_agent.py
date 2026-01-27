@@ -505,6 +505,12 @@ class SupervisorAgent(BaseAgent):
 
         # Identify critical findings
         critical_findings = [f for f in findings if f.status == "critical"]
+        abnormal_findings = [f for f in findings if f.status == "abnormal"]
+        reasoning_steps.append(
+            f"Total findings: {len(findings)} "
+            f"({len(critical_findings)} critical, {len(abnormal_findings)} abnormal, "
+            f"{len(findings) - len(critical_findings) - len(abnormal_findings)} normal)"
+        )
 
         # Identify primary diagnosis (highest confidence)
         primary_diagnosis = None
@@ -513,9 +519,24 @@ class SupervisorAgent(BaseAgent):
             sorted_dx = sorted(diagnoses, key=lambda d: d.confidence, reverse=True)
             primary_diagnosis = sorted_dx[0]
             differential_diagnoses = sorted_dx[1:4]  # Top 3 differentials
+            reasoning_steps.append(
+                f"Primary diagnosis: {primary_diagnosis.diagnosis} "
+                f"(ICD-10: {primary_diagnosis.icd10_code}, confidence: {primary_diagnosis.confidence:.0%})"
+            )
+            if differential_diagnoses:
+                diff_list = ", ".join(
+                    f"{d.diagnosis} ({d.confidence:.0%})" for d in differential_diagnoses
+                )
+                reasoning_steps.append(f"Differential diagnoses: {diff_list}")
+        else:
+            reasoning_steps.append("No diagnoses determined — physician evaluation required")
 
         # Identify immediate actions
         immediate_actions = [t for t in treatments if t.priority in ["immediate", "urgent"]]
+        reasoning_steps.append(
+            f"Treatment plan: {len(treatments)} recommendation(s) "
+            f"({len(immediate_actions)} immediate/urgent)"
+        )
 
         # Extract all codes
         icd10_codes = []
@@ -536,9 +557,14 @@ class SupervisorAgent(BaseAgent):
                     "priority": tx.priority
                 })
 
+        reasoning_steps.append(
+            f"Clinical codes: {len(icd10_codes)} ICD-10, {len(cpt_codes)} CPT"
+        )
+
         # Calculate overall confidence
         confidences = [dx.confidence for dx in diagnoses] if diagnoses else [0]
         overall_confidence = sum(confidences) / len(confidences)
+        reasoning_steps.append(f"Overall diagnostic confidence: {overall_confidence:.0%}")
 
         # Determine if human review required
         requires_review = False
@@ -563,6 +589,13 @@ class SupervisorAgent(BaseAgent):
         if not diagnoses:
             requires_review = True
             review_reasons.append("No diagnosis determined")
+
+        if requires_review:
+            reasoning_steps.append(f"Human review REQUIRED: {'; '.join(review_reasons)}")
+        else:
+            reasoning_steps.append("Human review: Not required")
+
+        reasoning_steps.append(f"Agents consulted: {', '.join(agent_outputs.keys())}")
 
         # Create patient summary
         patient_summary = {
@@ -601,23 +634,80 @@ class SupervisorAgent(BaseAgent):
 
     def _quality_check(self, recommendation: ComprehensiveRecommendation) -> ComprehensiveRecommendation:
         """Final quality checks on the recommendation"""
+        checks_passed = 0
+        checks_failed = 0
 
-        # Check for conflicting recommendations
-        # (In production, implement more sophisticated checks)
+        # Check 1: Critical findings have corresponding treatments
+        if recommendation.critical_findings:
+            if recommendation.immediate_actions:
+                recommendation.reasoning_chain.append(
+                    f"QC PASS: {len(recommendation.immediate_actions)} immediate action(s) "
+                    f"address {len(recommendation.critical_findings)} critical finding(s)"
+                )
+                checks_passed += 1
+            else:
+                recommendation.warnings.append(
+                    "QUALITY: Critical findings present but no immediate actions recommended"
+                )
+                recommendation.requires_human_review = True
+                recommendation.review_reasons.append("Critical findings without immediate actions")
+                recommendation.reasoning_chain.append(
+                    "QC FAIL: Critical findings present but no immediate actions recommended"
+                )
+                checks_failed += 1
+        else:
+            recommendation.reasoning_chain.append("QC PASS: No critical findings requiring immediate action")
+            checks_passed += 1
 
-        # Ensure critical findings have corresponding treatments
-        if recommendation.critical_findings and not recommendation.immediate_actions:
-            recommendation.warnings.append(
-                "QUALITY: Critical findings present but no immediate actions recommended"
+        # Check 2: Diagnoses have corresponding codes
+        if recommendation.primary_diagnosis:
+            if recommendation.icd10_codes:
+                recommendation.reasoning_chain.append(
+                    f"QC PASS: {len(recommendation.icd10_codes)} ICD-10 code(s) assigned to diagnoses"
+                )
+                checks_passed += 1
+            else:
+                recommendation.warnings.append(
+                    "QUALITY: Diagnosis present but no ICD-10 code assigned"
+                )
+                recommendation.reasoning_chain.append(
+                    "QC FAIL: Diagnosis present but no ICD-10 code assigned"
+                )
+                checks_failed += 1
+        else:
+            recommendation.reasoning_chain.append("QC SKIP: No primary diagnosis to validate codes against")
+
+        # Check 3: Treatments have CPT codes
+        treatments_without_codes = [
+            t for t in recommendation.treatments if not t.cpt_code
+        ]
+        if recommendation.treatments:
+            if not treatments_without_codes:
+                recommendation.reasoning_chain.append(
+                    f"QC PASS: All {len(recommendation.treatments)} treatment(s) have CPT codes"
+                )
+                checks_passed += 1
+            else:
+                recommendation.reasoning_chain.append(
+                    f"QC INFO: {len(treatments_without_codes)}/{len(recommendation.treatments)} "
+                    f"treatment(s) missing CPT codes"
+                )
+
+        # Check 4: Confidence threshold
+        if recommendation.overall_confidence >= 0.7:
+            recommendation.reasoning_chain.append(
+                f"QC PASS: Diagnostic confidence {recommendation.overall_confidence:.0%} meets threshold (≥70%)"
             )
-            recommendation.requires_human_review = True
-            recommendation.review_reasons.append("Critical findings without immediate actions")
-
-        # Ensure diagnoses have corresponding codes
-        if recommendation.primary_diagnosis and not recommendation.icd10_codes:
-            recommendation.warnings.append(
-                "QUALITY: Diagnosis present but no ICD-10 code assigned"
+            checks_passed += 1
+        else:
+            recommendation.reasoning_chain.append(
+                f"QC WARN: Diagnostic confidence {recommendation.overall_confidence:.0%} below threshold (≥70%)"
             )
+            checks_failed += 1
+
+        recommendation.reasoning_chain.append(
+            f"Quality check complete: {checks_passed} passed, {checks_failed} failed"
+        )
 
         return recommendation
 
