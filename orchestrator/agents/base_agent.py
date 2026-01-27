@@ -190,9 +190,14 @@ class MCPClient:
         """Gather full patient context from MCP servers"""
         data = await self.call_tool("fhir", "get_full_patient_context", {"patient_id": patient_id})
 
-        # Transform to PatientContext
-        patient_data = data.get("patient", {})
-        vitals_data = data.get("vitals", {})
+        # Handle case where data itself is None or not a dict
+        if not data or not isinstance(data, dict):
+            data = {}
+
+        # Use `or {}` to handle fields that are explicitly None
+        # (e.g. when an MCP sub-tool call fails and returns None)
+        patient_data = data.get("patient") or {}
+        vitals_data = data.get("vitals") or {}
 
         return PatientContext(
             patient_id=patient_id,
@@ -201,12 +206,12 @@ class MCPClient:
             age=self._calculate_age(patient_data.get("birthDate")),
             sex=patient_data.get("gender"),
             date_of_birth=patient_data.get("birthDate"),
-            vitals=vitals_data.get("vitals", []),
-            labs=data.get("labs", {}).get("labs", []),
-            medications=data.get("medications", {}).get("medications", []),
-            allergies=data.get("allergies", {}).get("allergies", []),
-            conditions=data.get("conditions", {}).get("conditions", []),
-            encounters=data.get("encounters", {}).get("encounters", [])
+            vitals=vitals_data.get("vitals") or [],
+            labs=(data.get("labs") or {}).get("labs") or [],
+            medications=(data.get("medications") or {}).get("medications") or [],
+            allergies=(data.get("allergies") or {}).get("allergies") or [],
+            conditions=(data.get("conditions") or {}).get("conditions") or [],
+            encounters=(data.get("encounters") or {}).get("encounters") or [],
         )
 
     def _extract_name(self, patient: dict) -> str:
