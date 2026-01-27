@@ -6,8 +6,11 @@ export async function fetchObservations(params: {
   count?: number;             // default 100
   category?: string;          // "vital-signs"
 }) {
-  const count = params.count ?? 100;
-  const q: Record<string, string> = { _count: String(count) };
+  const count = params.count ?? 200;
+  const q: Record<string, string> = {
+    _count: String(count),
+    _sort: "-date",
+  };
 
   if (params.category) q["category"] = params.category;
   if (params.patientRef) {
