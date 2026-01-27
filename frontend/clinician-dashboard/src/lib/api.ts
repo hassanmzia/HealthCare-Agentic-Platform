@@ -78,6 +78,7 @@ export type ClinicalAssessment = {
   warnings: string[];
   requires_human_review: boolean;
   review_reason?: string;
+  assessment_id?: string;
   persisted_recommendation_id?: number;
 };
 
