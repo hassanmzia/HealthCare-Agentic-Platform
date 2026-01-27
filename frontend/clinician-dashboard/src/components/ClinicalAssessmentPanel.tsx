@@ -242,7 +242,7 @@ export function ClinicalAssessmentPanel({ patientId, fhirId }: Props) {
     }
 
     await ehrOrdersMutation.mutateAsync({
-      assessmentId: assessment.assessment.assessment_id || String(assessment.assessment.persisted_recommendation_id),
+      assessmentId: String(assessmentId),
       reviewId: reviewState.submittedReview.id,
       treatmentIndices: approvedTreatmentIndices,
     });
