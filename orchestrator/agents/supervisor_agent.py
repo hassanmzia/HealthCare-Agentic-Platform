@@ -274,7 +274,7 @@ class SupervisorAgent(BaseAgent):
 
             # Step 8: Final quality check
             reasoning_steps.append("\n=== Step 8: Quality Check ===")
-            recommendation = self._quality_check(recommendation)
+            recommendation = self._quality_check(recommendation, reasoning_steps)
 
             # Convert to AgentOutput
             return AgentOutput(
@@ -639,7 +639,11 @@ class SupervisorAgent(BaseAgent):
             agent_outputs=agent_outputs
         )
 
-    def _quality_check(self, recommendation: ComprehensiveRecommendation) -> ComprehensiveRecommendation:
+    def _quality_check(
+        self,
+        recommendation: ComprehensiveRecommendation,
+        reasoning_steps: List[str],
+    ) -> ComprehensiveRecommendation:
         """Final quality checks on the recommendation"""
         checks_passed = 0
         checks_failed = 0
@@ -647,7 +651,7 @@ class SupervisorAgent(BaseAgent):
         # Check 1: Critical findings have corresponding treatments
         if recommendation.critical_findings:
             if recommendation.immediate_actions:
-                recommendation.reasoning_chain.append(
+                reasoning_steps.append(
                     f"QC PASS: {len(recommendation.immediate_actions)} immediate action(s) "
                     f"address {len(recommendation.critical_findings)} critical finding(s)"
                 )
@@ -658,18 +662,18 @@ class SupervisorAgent(BaseAgent):
                 )
                 recommendation.requires_human_review = True
                 recommendation.review_reasons.append("Critical findings without immediate actions")
-                recommendation.reasoning_chain.append(
+                reasoning_steps.append(
                     "QC FAIL: Critical findings present but no immediate actions recommended"
                 )
                 checks_failed += 1
         else:
-            recommendation.reasoning_chain.append("QC PASS: No critical findings requiring immediate action")
+            reasoning_steps.append("QC PASS: No critical findings requiring immediate action")
             checks_passed += 1
 
         # Check 2: Diagnoses have corresponding codes
         if recommendation.primary_diagnosis:
             if recommendation.icd10_codes:
-                recommendation.reasoning_chain.append(
+                reasoning_steps.append(
                     f"QC PASS: {len(recommendation.icd10_codes)} ICD-10 code(s) assigned to diagnoses"
                 )
                 checks_passed += 1
@@ -677,12 +681,12 @@ class SupervisorAgent(BaseAgent):
                 recommendation.warnings.append(
                     "QUALITY: Diagnosis present but no ICD-10 code assigned"
                 )
-                recommendation.reasoning_chain.append(
+                reasoning_steps.append(
                     "QC FAIL: Diagnosis present but no ICD-10 code assigned"
                 )
                 checks_failed += 1
         else:
-            recommendation.reasoning_chain.append("QC SKIP: No primary diagnosis to validate codes against")
+            reasoning_steps.append("QC SKIP: No primary diagnosis to validate codes against")
 
         # Check 3: Treatments have CPT codes
         treatments_without_codes = [
@@ -690,29 +694,29 @@ class SupervisorAgent(BaseAgent):
         ]
         if recommendation.treatments:
             if not treatments_without_codes:
-                recommendation.reasoning_chain.append(
+                reasoning_steps.append(
                     f"QC PASS: All {len(recommendation.treatments)} treatment(s) have CPT codes"
                 )
                 checks_passed += 1
             else:
-                recommendation.reasoning_chain.append(
+                reasoning_steps.append(
                     f"QC INFO: {len(treatments_without_codes)}/{len(recommendation.treatments)} "
                     f"treatment(s) missing CPT codes"
                 )
 
         # Check 4: Confidence threshold
         if recommendation.overall_confidence >= 0.7:
-            recommendation.reasoning_chain.append(
+            reasoning_steps.append(
                 f"QC PASS: Diagnostic confidence {recommendation.overall_confidence:.0%} meets threshold (≥70%)"
             )
             checks_passed += 1
         else:
-            recommendation.reasoning_chain.append(
+            reasoning_steps.append(
                 f"QC WARN: Diagnostic confidence {recommendation.overall_confidence:.0%} below threshold (≥70%)"
             )
             checks_failed += 1
 
-        recommendation.reasoning_chain.append(
+        reasoning_steps.append(
             f"Quality check complete: {checks_passed} passed, {checks_failed} failed"
         )
 
