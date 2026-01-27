@@ -255,14 +255,19 @@ services:
     environment:
       BACKEND_URL: http://backend:8000
       MCP_ADAPTER_URL: http://mcp-fhir-adapter:8002
+      ORCHESTRATOR_URL: http://orchestrator:8003
       DEFAULT_INTERVAL: "30"
       AUTO_START: "false"
+      ENABLE_ALERTS: "true"
+      ENABLE_AI_RECOMMENDATIONS: "true"
     ports:
       - "8004:8004"
     depends_on:
       backend:
         condition: service_started
       mcp-fhir-adapter:
+        condition: service_started
+      orchestrator:
         condition: service_started
     networks: [healthnet]
     restart: unless-stopped

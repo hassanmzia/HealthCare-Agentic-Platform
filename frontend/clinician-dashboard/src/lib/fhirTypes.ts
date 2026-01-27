@@ -14,9 +14,14 @@ export type Observation = {
   effectiveDateTime?: string;
   issued?: string;
   valueQuantity?: { value?: number; unit?: string };
+  valueCodeableConcept?: {
+    coding?: Array<{ system?: string; code?: string; display?: string }>;
+    text?: string;
+  };
   component?: Array<{
     code?: { coding?: Array<{ system?: string; code?: string; display?: string }> };
     valueQuantity?: { value?: number; unit?: string };
+    valueString?: string;
   }>;
 };
 

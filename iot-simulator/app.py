@@ -374,7 +374,8 @@ async def trigger_once():
 async def set_patient_condition(data: PatientCondition):
     """Set a patient's condition for realistic vital generation."""
     valid_conditions = ["normal", "hypertensive", "hypotensive", "fever",
-                        "tachycardic", "bradycardic", "hypoxic"]
+                        "tachycardic", "bradycardic", "hypoxic", "diabetic",
+                        "diabetic_hyper", "afib", "mi_risk"]
 
     if data.condition not in valid_conditions:
         raise HTTPException(status_code=400, detail=f"Invalid condition. Must be one of: {valid_conditions}")
