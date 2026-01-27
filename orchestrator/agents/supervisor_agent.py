@@ -561,9 +561,16 @@ class SupervisorAgent(BaseAgent):
             f"Clinical codes: {len(icd10_codes)} ICD-10, {len(cpt_codes)} CPT"
         )
 
-        # Calculate overall confidence
-        confidences = [dx.confidence for dx in diagnoses] if diagnoses else [0]
-        overall_confidence = sum(confidences) / len(confidences)
+        # Calculate overall confidence based on primary diagnosis
+        # Using primary (highest-confidence) diagnosis rather than averaging all
+        # diagnoses, because differentials are expected to have lower confidence
+        # and averaging them dilutes the score
+        if primary_diagnosis:
+            overall_confidence = primary_diagnosis.confidence
+        elif diagnoses:
+            overall_confidence = max(dx.confidence for dx in diagnoses)
+        else:
+            overall_confidence = 0.0
         reasoning_steps.append(f"Overall diagnostic confidence: {overall_confidence:.0%}")
 
         # Determine if human review required
