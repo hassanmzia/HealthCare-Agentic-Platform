@@ -264,6 +264,24 @@ export function getDocumentDownloadUrl(documentId: string, format: string = "pdf
   return `${baseUrl}/api/v1/clinical/documents/${documentId}/download/?download_format=${format}`;
 }
 
+export async function downloadClinicalDocument(documentId: string, title: string, format: string = "pdf"): Promise<void> {
+  const res = await api.get(`/api/v1/clinical/documents/${documentId}/download/`, {
+    params: { format },
+    responseType: "blob",
+  });
+  const blob = new Blob([res.data], {
+    type: format === "pdf" ? "application/pdf" : "text/html",
+  });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${title.replace(/\s+/g, "_").replace(/\//g, "-")}.${format === "pdf" ? "pdf" : "html"}`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
+
 // Create EHR orders from approved treatments
 export async function createEHROrders(
   assessmentId: string,
