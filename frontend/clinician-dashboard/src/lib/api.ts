@@ -156,3 +156,135 @@ export async function fetchMCPStatus(): Promise<{ mcp_servers: Record<string, { 
   const res = await orchestrator.get("/api/v1/mcp/status");
   return res.data;
 }
+
+// =============================================================================
+// Physician Review API Types and Functions
+// =============================================================================
+
+export type PhysicianReviewSubmission = {
+  assessment_id: string;
+  physician_id: string;
+  physician_name: string;
+  physician_npi?: string;
+  physician_specialty?: string;
+  decision: "approved" | "approved_modified" | "rejected" | "deferred";
+  approved_diagnoses: number[];
+  rejected_diagnoses: number[];
+  approved_treatments: number[];
+  rejected_treatments: number[];
+  modified_diagnoses?: Array<Record<string, unknown>>;
+  modified_treatments?: Array<Record<string, unknown>>;
+  added_diagnoses?: Array<Record<string, unknown>>;
+  added_treatments?: Array<Record<string, unknown>>;
+  physician_notes?: string;
+  rejection_reason?: string;
+  clinical_rationale?: string;
+  attest: boolean;
+  review_started_at?: string;
+};
+
+export type PhysicianReview = {
+  id: string;
+  assessment: string;
+  physician_id: string;
+  physician_name: string;
+  physician_npi?: string;
+  physician_specialty?: string;
+  decision: string;
+  approved_diagnoses: number[];
+  rejected_diagnoses: number[];
+  approved_treatments: number[];
+  rejected_treatments: number[];
+  final_icd10_codes: Array<{ code: string; description: string }>;
+  final_cpt_codes: Array<{ code: string; description: string }>;
+  physician_notes: string;
+  attested: boolean;
+  signature_datetime?: string;
+  review_completed_at?: string;
+  time_spent_seconds: number;
+  created_at: string;
+};
+
+export type ClinicalDocument = {
+  id: string;
+  assessment: string;
+  document_type: string;
+  title: string;
+  format: string;
+  status: string;
+  content: string;
+  created_at: string;
+};
+
+export type EHROrder = {
+  id: string;
+  order_type: string;
+  status: string;
+  description: string;
+  cpt_code?: string;
+  ehr_order_id?: string;
+  created_at: string;
+};
+
+// Submit physician review
+export async function submitPhysicianReview(review: PhysicianReviewSubmission): Promise<PhysicianReview> {
+  const res = await api.post<PhysicianReview>("/api/v1/clinical/reviews/submit/", review);
+  return res.data;
+}
+
+// Get review details
+export async function fetchPhysicianReview(reviewId: string): Promise<PhysicianReview> {
+  const res = await api.get<PhysicianReview>(`/api/v1/clinical/reviews/${reviewId}/`);
+  return res.data;
+}
+
+// Generate clinical document
+export async function generateClinicalDocument(
+  assessmentId: string,
+  reviewId?: string,
+  documentType: string = "assessment_summary",
+  format: string = "html",
+  includeReasoning: boolean = false
+): Promise<ClinicalDocument> {
+  const res = await api.post<ClinicalDocument>("/api/v1/clinical/documents/generate/", {
+    assessment_id: assessmentId,
+    review_id: reviewId,
+    document_type: documentType,
+    format,
+    include_reasoning: includeReasoning,
+    include_codes: true,
+  });
+  return res.data;
+}
+
+// Create EHR orders from approved treatments
+export async function createEHROrders(
+  assessmentId: string,
+  reviewId: string,
+  treatmentIndices: number[],
+  physicianId: string,
+  physicianName: string,
+  physicianNpi?: string
+): Promise<{ success: boolean; orders_created: number; orders: EHROrder[] }> {
+  const res = await api.post("/api/v1/clinical/orders/create/", {
+    assessment_id: assessmentId,
+    review_id: reviewId,
+    treatment_indices: treatmentIndices,
+    ordering_physician_id: physicianId,
+    ordering_physician_name: physicianName,
+    ordering_physician_npi: physicianNpi || "",
+  });
+  return res.data;
+}
+
+// Get audit logs for an assessment
+export async function fetchAssessmentAuditLogs(assessmentId: string): Promise<{ total: number; results: Array<{
+  id: string;
+  action: string;
+  action_detail: string;
+  actor_name: string;
+  timestamp: string;
+}> }> {
+  const res = await api.get(`/api/v1/clinical/assessments/${assessmentId}/audit/`);
+  return res.data;
+}

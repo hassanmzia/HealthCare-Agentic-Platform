@@ -3,11 +3,17 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   fetchClinicalAssessment,
   fetchLLMStatus,
+  submitPhysicianReview,
+  generateClinicalDocument,
+  createEHROrders,
   type AssessmentResponse,
   type ClinicalAssessment,
   type ClinicalFinding,
   type DiagnosisRecommendation,
   type TreatmentRecommendation,
+  type PhysicianReview,
+  type ClinicalDocument,
+  type EHROrder,
 } from "../lib/api";
 
 type Props = {
@@ -20,6 +26,9 @@ type ReviewState = {
   approvedTreatments: Set<number>;
   physicianNotes: string;
   reviewStatus: "pending" | "approved" | "rejected" | "modified";
+  submittedReview?: PhysicianReview;
+  generatedDocument?: ClinicalDocument;
+  ehrOrders?: EHROrder[];
 };
 
 export function ClinicalAssessmentPanel({ patientId, fhirId }: Props) {
@@ -32,6 +41,8 @@ export function ClinicalAssessmentPanel({ patientId, fhirId }: Props) {
     reviewStatus: "pending",
   });
   const [isReviewing, setIsReviewing] = useState(false);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewStartedAt, setReviewStartedAt] = useState<string | null>(null);
 
   // Fetch LLM status
   const llmStatusQuery = useQuery({
@@ -55,11 +66,69 @@ export function ClinicalAssessmentPanel({ patientId, fhirId }: Props) {
         });
       }
       setIsReviewing(false);
+      setReviewStartedAt(null);
+    },
+  });
+
+  // Submit physician review mutation
+  const reviewMutation = useMutation({
+    mutationFn: submitPhysicianReview,
+    onSuccess: (data) => {
+      setReviewState(prev => ({
+        ...prev,
+        submittedReview: data,
+      }));
+      setIsSubmittingReview(false);
+    },
+    onError: (error) => {
+      console.error("Review submission failed:", error);
+      setIsSubmittingReview(false);
+      alert(`Failed to submit review: ${(error as Error).message}`);
+    },
+  });
+
+  // Generate clinical document mutation
+  const documentMutation = useMutation({
+    mutationFn: (params: { assessmentId: string; reviewId?: string }) =>
+      generateClinicalDocument(params.assessmentId, params.reviewId, "assessment_summary", "html", true),
+    onSuccess: (data) => {
+      setReviewState(prev => ({
+        ...prev,
+        generatedDocument: data,
+      }));
+    },
+    onError: (error) => {
+      console.error("Document generation failed:", error);
+      alert(`Failed to generate document: ${(error as Error).message}`);
+    },
+  });
+
+  // Create EHR orders mutation
+  const ehrOrdersMutation = useMutation({
+    mutationFn: (params: { assessmentId: string; reviewId: string; treatmentIndices: number[] }) =>
+      createEHROrders(
+        params.assessmentId,
+        params.reviewId,
+        params.treatmentIndices,
+        "physician-001", // In production, get from auth context
+        "Dr. Review Physician",
+        "1234567890"
+      ),
+    onSuccess: (data) => {
+      setReviewState(prev => ({
+        ...prev,
+        ehrOrders: data.orders,
+      }));
+    },
+    onError: (error) => {
+      console.error("EHR order creation failed:", error);
+      alert(`Failed to create EHR orders: ${(error as Error).message}`);
     },
   });
 
   const handleStartReview = () => {
     setIsReviewing(true);
+    setReviewStartedAt(new Date().toISOString());
   };
 
   const handleToggleDiagnosis = (index: number) => {
@@ -87,12 +156,95 @@ export function ClinicalAssessmentPanel({ patientId, fhirId }: Props) {
   };
 
   const handleSubmitReview = async (status: "approved" | "rejected" | "modified") => {
-    // In a real app, this would call an API to save the review
-    setReviewState(prev => ({ ...prev, reviewStatus: status }));
-    setIsReviewing(false);
+    if (!assessment?.assessment?.persisted_recommendation_id) {
+      // Fallback for assessments not persisted to backend
+      setReviewState(prev => ({ ...prev, reviewStatus: status }));
+      setIsReviewing(false);
+      alert(`Review submitted as "${status}". Note: Assessment was not persisted to backend.`);
+      return;
+    }
 
-    // Show confirmation
-    alert(`Review submitted as "${status}". In production, this would save to the database and create clinical documentation.`);
+    setIsSubmittingReview(true);
+
+    // Determine decision type based on status and modifications
+    const allDiagnosesApproved = reviewState.approvedDiagnoses.size === assessment.assessment.diagnoses.length;
+    const allTreatmentsApproved = reviewState.approvedTreatments.size === assessment.assessment.treatments.length;
+
+    let decision: "approved" | "approved_modified" | "rejected" | "deferred";
+    if (status === "rejected") {
+      decision = "rejected";
+    } else if (status === "approved" && allDiagnosesApproved && allTreatmentsApproved) {
+      decision = "approved";
+    } else {
+      decision = "approved_modified";
+    }
+
+    // Build arrays of approved/rejected indices
+    const approvedDiagnoses = Array.from(reviewState.approvedDiagnoses);
+    const rejectedDiagnoses = assessment.assessment.diagnoses
+      .map((_, i) => i)
+      .filter(i => !reviewState.approvedDiagnoses.has(i));
+    const approvedTreatments = Array.from(reviewState.approvedTreatments);
+    const rejectedTreatments = assessment.assessment.treatments
+      .map((_, i) => i)
+      .filter(i => !reviewState.approvedTreatments.has(i));
+
+    try {
+      await reviewMutation.mutateAsync({
+        assessment_id: String(assessment.assessment.persisted_recommendation_id),
+        physician_id: "physician-001", // In production, get from auth context
+        physician_name: "Dr. Review Physician",
+        physician_npi: "1234567890",
+        physician_specialty: "Internal Medicine",
+        decision,
+        approved_diagnoses: approvedDiagnoses,
+        rejected_diagnoses: rejectedDiagnoses,
+        approved_treatments: approvedTreatments,
+        rejected_treatments: rejectedTreatments,
+        physician_notes: reviewState.physicianNotes || undefined,
+        clinical_rationale: reviewState.physicianNotes || undefined,
+        rejection_reason: status === "rejected" ? reviewState.physicianNotes : undefined,
+        attest: true,
+        review_started_at: reviewStartedAt || undefined,
+      });
+
+      setReviewState(prev => ({ ...prev, reviewStatus: status }));
+      setIsReviewing(false);
+    } catch (error) {
+      console.error("Failed to submit review:", error);
+      setIsSubmittingReview(false);
+    }
+  };
+
+  const handleGenerateDocument = async () => {
+    if (!assessment?.assessment?.persisted_recommendation_id) {
+      alert("Assessment not persisted to backend. Cannot generate document.");
+      return;
+    }
+
+    await documentMutation.mutateAsync({
+      assessmentId: String(assessment.assessment.persisted_recommendation_id),
+      reviewId: reviewState.submittedReview?.id,
+    });
+  };
+
+  const handleCreateEHROrders = async () => {
+    if (!assessment?.assessment?.persisted_recommendation_id || !reviewState.submittedReview?.id) {
+      alert("Review must be submitted before creating EHR orders.");
+      return;
+    }
+
+    const approvedTreatmentIndices = Array.from(reviewState.approvedTreatments);
+    if (approvedTreatmentIndices.length === 0) {
+      alert("No treatments approved. Cannot create orders.");
+      return;
+    }
+
+    await ehrOrdersMutation.mutateAsync({
+      assessmentId: String(assessment.assessment.persisted_recommendation_id),
+      reviewId: reviewState.submittedReview.id,
+      treatmentIndices: approvedTreatmentIndices,
+    });
   };
 
   const cardStyle = { border: "1px solid #eee", borderRadius: 12, padding: 16, marginBottom: 16 };
@@ -166,11 +318,16 @@ export function ClinicalAssessmentPanel({ patientId, fhirId }: Props) {
           onToggleReasoning={() => setShowReasoning(!showReasoning)}
           reviewState={reviewState}
           isReviewing={isReviewing}
+          isSubmittingReview={isSubmittingReview}
           onStartReview={handleStartReview}
           onToggleDiagnosis={handleToggleDiagnosis}
           onToggleTreatment={handleToggleTreatment}
           onSubmitReview={handleSubmitReview}
           onNotesChange={(notes) => setReviewState(prev => ({ ...prev, physicianNotes: notes }))}
+          onGenerateDocument={handleGenerateDocument}
+          onCreateEHROrders={handleCreateEHROrders}
+          isGeneratingDocument={documentMutation.isPending}
+          isCreatingOrders={ehrOrdersMutation.isPending}
         />
       )}
 
@@ -192,11 +349,16 @@ function AssessmentResults({
   onToggleReasoning,
   reviewState,
   isReviewing,
+  isSubmittingReview,
   onStartReview,
   onToggleDiagnosis,
   onToggleTreatment,
   onSubmitReview,
   onNotesChange,
+  onGenerateDocument,
+  onCreateEHROrders,
+  isGeneratingDocument,
+  isCreatingOrders,
 }: {
   assessment: ClinicalAssessment;
   llmProvider?: string;
@@ -204,11 +366,16 @@ function AssessmentResults({
   onToggleReasoning: () => void;
   reviewState: ReviewState;
   isReviewing: boolean;
+  isSubmittingReview: boolean;
   onStartReview: () => void;
   onToggleDiagnosis: (index: number) => void;
   onToggleTreatment: (index: number) => void;
   onSubmitReview: (status: "approved" | "rejected" | "modified") => void;
   onNotesChange: (notes: string) => void;
+  onGenerateDocument: () => void;
+  onCreateEHROrders: () => void;
+  isGeneratingDocument: boolean;
+  isCreatingOrders: boolean;
 }) {
   const cardStyle = { border: "1px solid #eee", borderRadius: 12, padding: 16, marginBottom: 16 };
 
@@ -386,47 +553,186 @@ function AssessmentResults({
           <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
             <button
               onClick={() => onSubmitReview("rejected")}
+              disabled={isSubmittingReview}
               style={{
                 padding: "10px 20px",
-                background: "#dc2626",
+                background: isSubmittingReview ? "#94a3b8" : "#dc2626",
                 color: "white",
                 border: "none",
                 borderRadius: 6,
                 fontWeight: 600,
-                cursor: "pointer",
+                cursor: isSubmittingReview ? "not-allowed" : "pointer",
               }}
             >
-              Reject Assessment
+              {isSubmittingReview ? "Submitting..." : "Reject Assessment"}
             </button>
             <button
               onClick={() => onSubmitReview("modified")}
+              disabled={isSubmittingReview}
               style={{
                 padding: "10px 20px",
-                background: "#2563eb",
+                background: isSubmittingReview ? "#94a3b8" : "#2563eb",
                 color: "white",
                 border: "none",
                 borderRadius: 6,
                 fontWeight: 600,
-                cursor: "pointer",
+                cursor: isSubmittingReview ? "not-allowed" : "pointer",
               }}
             >
-              Approve with Modifications
+              {isSubmittingReview ? "Submitting..." : "Approve with Modifications"}
             </button>
             <button
               onClick={() => onSubmitReview("approved")}
+              disabled={isSubmittingReview}
               style={{
                 padding: "10px 20px",
-                background: "#059669",
+                background: isSubmittingReview ? "#94a3b8" : "#059669",
                 color: "white",
                 border: "none",
                 borderRadius: 6,
                 fontWeight: 600,
-                cursor: "pointer",
+                cursor: isSubmittingReview ? "not-allowed" : "pointer",
               }}
             >
-              Approve All
+              {isSubmittingReview ? "Submitting..." : "Approve All"}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Post-Review Actions Panel */}
+      {reviewState.submittedReview && (
+        <div style={{ ...cardStyle, background: "#f0fdf4", border: "2px solid #22c55e" }}>
+          <h4 style={{ margin: "0 0 16px", color: "#166534", display: "flex", alignItems: "center", gap: 8 }}>
+            <span>✅</span> Review Submitted Successfully
+          </h4>
+
+          <div style={{ marginBottom: 16, fontSize: 13, color: "#475569" }}>
+            <div><strong>Review ID:</strong> {reviewState.submittedReview.id}</div>
+            <div><strong>Decision:</strong> {reviewState.submittedReview.decision}</div>
+            <div><strong>Attested:</strong> {reviewState.submittedReview.attested ? "Yes" : "No"}</div>
+            {reviewState.submittedReview.signature_datetime && (
+              <div><strong>Signed:</strong> {new Date(reviewState.submittedReview.signature_datetime).toLocaleString()}</div>
+            )}
+          </div>
+
+          {/* Final Codes */}
+          {reviewState.submittedReview.final_icd10_codes?.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Final ICD-10 Codes:</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                {reviewState.submittedReview.final_icd10_codes.map((code, i) => (
+                  <span key={i} style={{ padding: "4px 8px", background: "#dbeafe", borderRadius: 4, fontSize: 11 }}>
+                    {code.code}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {reviewState.submittedReview.final_cpt_codes?.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Final CPT Codes:</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                {reviewState.submittedReview.final_cpt_codes.map((code, i) => (
+                  <span key={i} style={{ padding: "4px 8px", background: "#dcfce7", borderRadius: 4, fontSize: 11 }}>
+                    {code.code}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Post-Review Action Buttons */}
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <button
+              onClick={onGenerateDocument}
+              disabled={isGeneratingDocument}
+              style={{
+                padding: "10px 16px",
+                background: isGeneratingDocument ? "#94a3b8" : "#6366f1",
+                color: "white",
+                border: "none",
+                borderRadius: 6,
+                fontWeight: 600,
+                cursor: isGeneratingDocument ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <span>📄</span>
+              {isGeneratingDocument ? "Generating..." : "Generate Clinical Document"}
+            </button>
+
+            <button
+              onClick={onCreateEHROrders}
+              disabled={isCreatingOrders || reviewState.submittedReview.decision === "rejected"}
+              style={{
+                padding: "10px 16px",
+                background: isCreatingOrders || reviewState.submittedReview.decision === "rejected" ? "#94a3b8" : "#0891b2",
+                color: "white",
+                border: "none",
+                borderRadius: 6,
+                fontWeight: 600,
+                cursor: isCreatingOrders || reviewState.submittedReview.decision === "rejected" ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <span>🏥</span>
+              {isCreatingOrders ? "Creating Orders..." : "Create EHR Orders"}
+            </button>
+          </div>
+
+          {/* Generated Document Display */}
+          {reviewState.generatedDocument && (
+            <div style={{ marginTop: 16, padding: 12, background: "white", borderRadius: 6, border: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <h5 style={{ margin: 0 }}>Generated Document: {reviewState.generatedDocument.title}</h5>
+                <span style={{
+                  padding: "2px 8px",
+                  background: reviewState.generatedDocument.status === "final" ? "#dcfce7" : "#fef3c7",
+                  borderRadius: 4,
+                  fontSize: 11,
+                  fontWeight: 600,
+                }}>
+                  {reviewState.generatedDocument.status.toUpperCase()}
+                </span>
+              </div>
+              <div
+                style={{ fontSize: 13, maxHeight: 300, overflow: "auto", background: "#f8fafc", padding: 12, borderRadius: 4 }}
+                dangerouslySetInnerHTML={{ __html: reviewState.generatedDocument.content }}
+              />
+            </div>
+          )}
+
+          {/* EHR Orders Display */}
+          {reviewState.ehrOrders && reviewState.ehrOrders.length > 0 && (
+            <div style={{ marginTop: 16, padding: 12, background: "white", borderRadius: 6, border: "1px solid #e2e8f0" }}>
+              <h5 style={{ margin: "0 0 8px" }}>EHR Orders Created ({reviewState.ehrOrders.length})</h5>
+              {reviewState.ehrOrders.map((order, i) => (
+                <div key={i} style={{ padding: 8, background: "#f0f9ff", borderRadius: 4, marginBottom: 4, fontSize: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ fontWeight: 600 }}>{order.description}</span>
+                    <span style={{
+                      padding: "2px 6px",
+                      background: order.status === "submitted" ? "#dcfce7" : "#fef3c7",
+                      borderRadius: 4,
+                      fontSize: 10,
+                    }}>
+                      {order.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div style={{ color: "#64748b", marginTop: 4 }}>
+                    Type: {order.order_type} {order.cpt_code && `• CPT: ${order.cpt_code}`}
+                    {order.ehr_order_id && ` • EHR ID: ${order.ehr_order_id}`}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

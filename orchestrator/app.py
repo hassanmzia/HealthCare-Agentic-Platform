@@ -166,8 +166,52 @@ async def comprehensive_assessment(request: ClinicalAssessmentRequest):
         except Exception:
             pass
 
-        # Persist to backend if successful
-        if output.success and output.diagnoses:
+        # Persist assessment to backend for physician review workflow
+        if output.success:
+            try:
+                # Build assessment data for the clinical assessment model
+                assessment_data = {
+                    "patient": int(request.patient_id) if request.patient_id.isdigit() else 1,
+                    "patient_summary": assessment["patient_summary"],
+                    "chief_complaint": context.chief_complaint or "",
+                    "history_present_illness": context.history_present_illness or "",
+                    "physician_notes": context.physician_notes or "",
+                    "findings": assessment["findings"],
+                    "critical_findings": assessment["critical_findings"],
+                    "diagnoses": assessment["diagnoses"],
+                    "primary_diagnosis_code": output.diagnoses[0].icd10_code if output.diagnoses else "",
+                    "primary_diagnosis_description": output.diagnoses[0].diagnosis if output.diagnoses else "",
+                    "treatments": assessment["treatments"],
+                    "immediate_actions": [t.dict() for t in output.treatments if t.priority in ["immediate", "urgent"]],
+                    "icd10_codes": assessment["icd10_codes"],
+                    "cpt_codes": assessment["cpt_codes"],
+                    "confidence_score": output.confidence,
+                    "reasoning_chain": output.reasoning_steps,
+                    "warnings": output.warnings,
+                    "agents_used": list(assessment.get("agent_outputs", {}).keys()) if "agent_outputs" in assessment else [],
+                    "requires_human_review": output.requires_human_review,
+                    "review_reasons": [output.review_reason] if output.review_reason else [],
+                    "llm_provider": llm_provider or ""
+                }
+
+                async with httpx.AsyncClient(timeout=20) as client:
+                    r = await client.post(
+                        f"{BACKEND_INTERNAL}/api/v1/clinical/assessments/",
+                        json=assessment_data
+                    )
+                    if r.status_code < 400:
+                        persisted = r.json()
+                        assessment["assessment_id"] = persisted.get("id")
+                        assessment["persisted"] = True
+                        logger.info(f"Assessment persisted with ID: {persisted.get('id')}")
+                    else:
+                        logger.warning(f"Failed to persist assessment: {r.status_code} - {r.text}")
+                        assessment["persist_warning"] = f"Status {r.status_code}"
+            except Exception as e:
+                logger.warning(f"Failed to persist assessment: {e}")
+                assessment["persist_warning"] = str(e)
+
+            # Also create legacy recommendation for backwards compatibility
             try:
                 recommendation_data = {
                     "patient_id": request.patient_id,
@@ -188,8 +232,7 @@ async def comprehensive_assessment(request: ClinicalAssessmentRequest):
                     if r.status_code < 400:
                         assessment["persisted_recommendation_id"] = r.json().get("id")
             except Exception as e:
-                logger.warning(f"Failed to persist recommendation: {e}")
-                assessment["persist_warning"] = str(e)
+                logger.warning(f"Failed to persist legacy recommendation: {e}")
 
         return ClinicalAssessmentResponse(
             success=True,
