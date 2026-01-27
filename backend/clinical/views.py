@@ -1310,15 +1310,15 @@ class CreateEHROrdersView(APIView):
                 patient=assessment.patient,
                 order_type=order_type,
                 status="pending",
-                priority=treatment.get("priority", "routine"),
-                description=treatment.get("description", ""),
-                cpt_code=treatment.get("cpt_code", ""),
+                priority=treatment.get("priority") or "routine",
+                description=treatment.get("description") or "",
+                cpt_code=treatment.get("cpt_code") or "",
                 order_details=treatment,
-                indication=treatment.get("rationale", ""),
+                indication=treatment.get("rationale") or "",
                 icd10_codes=review.final_icd10_codes,
                 ordering_physician_id=data["ordering_physician_id"],
                 ordering_physician_name=data["ordering_physician_name"],
-                ordering_physician_npi=data.get("ordering_physician_npi", "")
+                ordering_physician_npi=data.get("ordering_physician_npi") or ""
             )
 
             # Extract specific fields based on order type
@@ -1355,8 +1355,8 @@ class CreateEHROrdersView(APIView):
 
     def _determine_order_type(self, treatment):
         """Determine order type from treatment details."""
-        desc_lower = treatment.get("description", "").lower()
-        tx_type = treatment.get("treatment_type", treatment.get("type", "")).lower()
+        desc_lower = (treatment.get("description") or "").lower()
+        tx_type = (treatment.get("treatment_type") or treatment.get("type") or "").lower()
 
         if tx_type == "medication" or any(term in desc_lower for term in ["medication", "drug", "prescribe", "mg", "tablet"]):
             return "medication"
@@ -1373,7 +1373,7 @@ class CreateEHROrdersView(APIView):
 
     def _populate_order_details(self, order, treatment):
         """Populate order-specific fields based on treatment type."""
-        desc = treatment.get("description", "")
+        desc = treatment.get("description") or ""
 
         if order.order_type == "medication":
             # Try to extract medication details
@@ -1391,7 +1391,7 @@ class CreateEHROrdersView(APIView):
                 if specialty in desc.lower():
                     order.referral_specialty = specialty.title()
                     break
-            order.referral_reason = treatment.get("rationale", "")
+            order.referral_reason = treatment.get("rationale") or ""
 
     def _submit_to_ehr(self, order):
         """Submit order to EHR system (simulated)."""
