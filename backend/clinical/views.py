@@ -3,10 +3,15 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.http import HttpResponse
 from django.db import transaction
 import hashlib
 import json
+import io
+import logging
 from datetime import timedelta
+
+logger = logging.getLogger(__name__)
 
 from patients.models import Patient
 from .models import (
@@ -984,11 +989,17 @@ class GenerateDocumentView(APIView):
 
         # Generate document content based on type
         doc_type = data["document_type"]
-        content = self._generate_document_content(
+        requested_format = data.get("format", "html")
+        html_content = self._generate_document_content(
             assessment, review, doc_type,
             include_reasoning=data.get("include_reasoning", False),
             include_codes=data.get("include_codes", True)
         )
+
+        # Convert to PDF if requested
+        pdf_bytes = None
+        if requested_format == "pdf":
+            pdf_bytes = self._html_to_pdf(html_content)
 
         # Create document record
         document = ClinicalDocument.objects.create(
@@ -996,9 +1007,10 @@ class GenerateDocumentView(APIView):
             physician_review=review,
             document_type=doc_type,
             title=f"{doc_type.replace('_', ' ').title()} - {assessment.patient.full_name}",
-            format=data.get("format", "html"),
+            format=requested_format,
             status="final" if review and review.attested else "draft",
-            content=content,
+            content=html_content,
+            file_size=len(pdf_bytes) if pdf_bytes else len(html_content.encode("utf-8")),
             structured_data=self._build_structured_data(assessment, review),
             generated_by="system",
             signed_by=review.physician_name if review and review.attested else "",
@@ -1213,6 +1225,26 @@ class GenerateDocumentView(APIView):
             "attested": review.attested if review else False
         }
 
+    def _html_to_pdf(self, html_content):
+        """Convert HTML content to PDF bytes using xhtml2pdf."""
+        try:
+            from xhtml2pdf import pisa
+            result_buffer = io.BytesIO()
+            pisa_status = pisa.CreatePDF(
+                io.StringIO(html_content),
+                dest=result_buffer,
+                encoding="utf-8"
+            )
+            if pisa_status.err:
+                logger.warning(f"xhtml2pdf conversion had errors: {pisa_status.err}")
+            return result_buffer.getvalue()
+        except ImportError:
+            logger.warning("xhtml2pdf not installed, falling back to HTML content")
+            return None
+        except Exception as e:
+            logger.error(f"PDF generation failed: {e}")
+            return None
+
     def _get_client_ip(self, request):
         x_forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
         if x_forwarded:
@@ -1227,6 +1259,54 @@ class ClinicalDocumentDetailView(APIView):
         document = get_object_or_404(ClinicalDocument, id=document_id)
         serializer = ClinicalDocumentSerializer(document)
         return Response(serializer.data)
+
+
+class ClinicalDocumentDownloadView(APIView):
+    """Download a clinical document as PDF or HTML file."""
+
+    def get(self, request, document_id):
+        document = get_object_or_404(ClinicalDocument, id=document_id)
+        requested_format = request.query_params.get("format", document.format)
+
+        html_content = document.content
+
+        if requested_format == "pdf":
+            pdf_bytes = self._html_to_pdf(html_content)
+            if pdf_bytes:
+                response = HttpResponse(pdf_bytes, content_type="application/pdf")
+                safe_title = document.title.replace(" ", "_").replace("/", "-")
+                response["Content-Disposition"] = f'attachment; filename="{safe_title}.pdf"'
+                return response
+            else:
+                return Response(
+                    {"error": "PDF generation unavailable. Install xhtml2pdf or download as HTML."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE
+                )
+        else:
+            response = HttpResponse(html_content, content_type="text/html; charset=utf-8")
+            safe_title = document.title.replace(" ", "_").replace("/", "-")
+            response["Content-Disposition"] = f'attachment; filename="{safe_title}.html"'
+            return response
+
+    def _html_to_pdf(self, html_content):
+        """Convert HTML content to PDF bytes using xhtml2pdf."""
+        try:
+            from xhtml2pdf import pisa
+            result_buffer = io.BytesIO()
+            pisa_status = pisa.CreatePDF(
+                io.StringIO(html_content),
+                dest=result_buffer,
+                encoding="utf-8"
+            )
+            if pisa_status.err:
+                logger.warning(f"xhtml2pdf conversion had errors: {pisa_status.err}")
+            return result_buffer.getvalue()
+        except ImportError:
+            logger.warning("xhtml2pdf not installed")
+            return None
+        except Exception as e:
+            logger.error(f"PDF generation failed: {e}")
+            return None
 
 
 # =============================================================================
@@ -1310,15 +1390,15 @@ class CreateEHROrdersView(APIView):
                 patient=assessment.patient,
                 order_type=order_type,
                 status="pending",
-                priority=treatment.get("priority", "routine"),
-                description=treatment.get("description", ""),
-                cpt_code=treatment.get("cpt_code", ""),
+                priority=treatment.get("priority") or "routine",
+                description=treatment.get("description") or "",
+                cpt_code=treatment.get("cpt_code") or "",
                 order_details=treatment,
-                indication=treatment.get("rationale", ""),
+                indication=treatment.get("rationale") or "",
                 icd10_codes=review.final_icd10_codes,
                 ordering_physician_id=data["ordering_physician_id"],
                 ordering_physician_name=data["ordering_physician_name"],
-                ordering_physician_npi=data.get("ordering_physician_npi", "")
+                ordering_physician_npi=data.get("ordering_physician_npi") or ""
             )
 
             # Extract specific fields based on order type
@@ -1355,8 +1435,8 @@ class CreateEHROrdersView(APIView):
 
     def _determine_order_type(self, treatment):
         """Determine order type from treatment details."""
-        desc_lower = treatment.get("description", "").lower()
-        tx_type = treatment.get("treatment_type", treatment.get("type", "")).lower()
+        desc_lower = (treatment.get("description") or "").lower()
+        tx_type = (treatment.get("treatment_type") or treatment.get("type") or "").lower()
 
         if tx_type == "medication" or any(term in desc_lower for term in ["medication", "drug", "prescribe", "mg", "tablet"]):
             return "medication"
@@ -1373,7 +1453,7 @@ class CreateEHROrdersView(APIView):
 
     def _populate_order_details(self, order, treatment):
         """Populate order-specific fields based on treatment type."""
-        desc = treatment.get("description", "")
+        desc = treatment.get("description") or ""
 
         if order.order_type == "medication":
             # Try to extract medication details
@@ -1391,7 +1471,7 @@ class CreateEHROrdersView(APIView):
                 if specialty in desc.lower():
                     order.referral_specialty = specialty.title()
                     break
-            order.referral_reason = treatment.get("rationale", "")
+            order.referral_reason = treatment.get("rationale") or ""
 
     def _submit_to_ehr(self, order):
         """Submit order to EHR system (simulated)."""

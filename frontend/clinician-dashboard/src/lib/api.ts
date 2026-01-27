@@ -258,6 +258,12 @@ export async function generateClinicalDocument(
   return res.data;
 }
 
+// Download clinical document as PDF or HTML
+export function getDocumentDownloadUrl(documentId: string, format: string = "pdf"): string {
+  const baseUrl = api.defaults.baseURL || "";
+  return `${baseUrl}/api/v1/clinical/documents/${documentId}/download/?format=${format}`;
+}
+
 // Create EHR orders from approved treatments
 export async function createEHROrders(
   assessmentId: string,

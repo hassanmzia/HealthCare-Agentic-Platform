@@ -14,6 +14,7 @@ from .views import (
     AssessmentAuditLogView,
     # Document Generation Views
     ClinicalDocumentListView, GenerateDocumentView, ClinicalDocumentDetailView,
+    ClinicalDocumentDownloadView,
     # EHR Order Views
     EHROrderListView, CreateEHROrdersView, EHROrderDetailView,
 )
@@ -61,6 +62,7 @@ urlpatterns = [
     path("documents/", ClinicalDocumentListView.as_view(), name="document-list"),
     path("documents/generate/", GenerateDocumentView.as_view(), name="document-generate"),
     path("documents/<uuid:document_id>/", ClinicalDocumentDetailView.as_view(), name="document-detail"),
+    path("documents/<uuid:document_id>/download/", ClinicalDocumentDownloadView.as_view(), name="document-download"),
 
     # EHR Orders
     path("orders/", EHROrderListView.as_view(), name="order-list"),
