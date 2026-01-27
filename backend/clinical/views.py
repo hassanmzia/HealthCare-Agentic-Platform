@@ -1266,7 +1266,7 @@ class ClinicalDocumentDownloadView(APIView):
 
     def get(self, request, document_id):
         document = get_object_or_404(ClinicalDocument, id=document_id)
-        requested_format = request.query_params.get("format", document.format)
+        requested_format = request.query_params.get("download_format", document.format)
 
         html_content = document.content
 
