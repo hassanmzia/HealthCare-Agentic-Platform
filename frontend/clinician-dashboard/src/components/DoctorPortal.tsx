@@ -69,8 +69,7 @@ export function DoctorPortal() {
     queryKey: ["patient-fhir-vitals", selectedPatient?.fhir_id],
     queryFn: () => fetchObservations({
       patientRef: `Patient/${selectedPatient!.fhir_id}`,
-      category: "vital-signs",
-      count: 100,
+      count: 200,
     }),
     enabled: !!selectedPatient?.fhir_id && activeTab === "overview",
     refetchInterval: 30000,
