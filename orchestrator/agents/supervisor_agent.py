@@ -432,6 +432,18 @@ class SupervisorAgent(BaseAgent):
             code = vital.get("code", "")
             value = vital.get("value")
 
+            # ECG observations have no numeric value - check ecg_findings instead
+            if code == "8601-7":
+                ecg_findings = vital.get("ecg_findings", [])
+                if ecg_findings:
+                    for finding in ecg_findings:
+                        finding_lower = finding.lower() if finding else ""
+                        if "fibrillation" in finding_lower or "st elevation" in finding_lower:
+                            critical_indicators += 2
+                        elif "st depression" in finding_lower or "ischemic" in finding_lower:
+                            critical_indicators += 1
+                continue
+
             if not value:
                 continue
 
@@ -452,6 +464,12 @@ class SupervisorAgent(BaseAgent):
                 if value >= 40 or value < 35:
                     critical_indicators += 2
                 elif value >= 38.5:
+                    critical_indicators += 1
+
+            elif code == "2339-0":  # Blood Glucose
+                if value > 300 or value < 50:
+                    critical_indicators += 2
+                elif value > 200 or value < 70:
                     critical_indicators += 1
 
             # Check BP components

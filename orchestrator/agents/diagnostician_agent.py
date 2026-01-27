@@ -320,23 +320,54 @@ class DiagnosticianAgent(BaseAgent):
                 source="FHIR Observation"
             ))
 
+        # Respiratory Rate
+        rr = latest.get("9279-1", {}).get("value")
+        if rr:
+            status = "normal"
+            interpretation = "Respiratory rate within normal limits"
+            if rr < 8:
+                status = "critical"
+                interpretation = f"Severe bradypnea ({rr} /min) - assess airway"
+            elif rr < 12:
+                status = "abnormal"
+                interpretation = f"Bradypnea ({rr} /min)"
+            elif rr > 30:
+                status = "critical"
+                interpretation = f"Severe tachypnea ({rr} /min) - assess respiratory distress"
+            elif rr > 20:
+                status = "abnormal"
+                interpretation = f"Tachypnea ({rr} /min) - evaluate for respiratory distress"
+
+            findings.append(ClinicalFinding(
+                type="vital",
+                name="Respiratory Rate",
+                value=rr,
+                unit="/min",
+                status=status,
+                interpretation=interpretation,
+                source="FHIR Observation"
+            ))
+
         # ECG - Look for ECG interpretation observations
         ecg = latest.get("8601-7", {})
         if ecg:
-            # ECG has components with rhythm and findings
-            components = ecg.get("components", [])
-            rhythm = None
-            ecg_findings = []
+            # Use top-level ecg fields from MCP server if available
+            rhythm = ecg.get("ecg_rhythm")
+            ecg_findings = ecg.get("ecg_findings", [])
 
-            for comp in components:
-                if not comp or not isinstance(comp, dict):
-                    continue
-                code = comp.get("code")
-                value = comp.get("value")
-                if code == "8884-9":  # Heart rhythm
-                    rhythm = value
-                elif code == "18844-1":  # ECG finding
-                    ecg_findings.append(value)
+            # Fall back to component parsing if top-level fields not present
+            if not rhythm and not ecg_findings:
+                components = ecg.get("components", [])
+                for comp in components:
+                    if not comp or not isinstance(comp, dict):
+                        continue
+                    code = comp.get("code")
+                    value = comp.get("value") or comp.get("valueString")
+                    if code == "8884-9":  # Heart rhythm
+                        rhythm = value
+                    elif code == "18844-1":  # ECG finding
+                        if value:
+                            ecg_findings.append(value)
 
             if rhythm or ecg_findings:
                 status = "normal"
