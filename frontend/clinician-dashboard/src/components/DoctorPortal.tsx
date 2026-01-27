@@ -95,6 +95,8 @@ export function DoctorPortal() {
     const temp = latestByType["8310-5"]; // Temperature
     const rr = latestByType["9279-1"]; // Respiratory Rate
     const bp = latestByType["85354-9"]; // Blood Pressure
+    const gluc = latestByType["2339-0"]; // Glucose
+    const ecg = latestByType["8601-7"]; // ECG
 
     const mostRecent = rows[rows.length - 1];
 
@@ -104,6 +106,10 @@ export function DoctorPortal() {
       temperature: temp?.value ?? undefined,
       respiratory_rate: rr?.value ?? undefined,
       blood_pressure: bp ? `${bp.bp_sys}/${bp.bp_dia}` : undefined,
+      glucose: gluc?.value ?? undefined,
+      ecg_rhythm: ecg?.ecg_data?.rhythm ?? undefined,
+      ecg_interpretation: ecg?.ecg_data?.interpretation ?? undefined,
+      ecg_findings: ecg?.ecg_data?.findings ?? undefined,
       recorded_at: mostRecent?.time,
     };
   }, [fhirVitalsQuery.data]);
@@ -326,6 +332,10 @@ type FhirVitals = {
   temperature?: number;
   respiratory_rate?: number;
   blood_pressure?: string;
+  glucose?: number;
+  ecg_rhythm?: string;
+  ecg_interpretation?: string;
+  ecg_findings?: string[];
   recorded_at?: string;
 } | null;
 
@@ -335,7 +345,7 @@ function PatientOverview({ summary, fhirVitals }: { summary: PatientClinicalSumm
 
   // Prefer FHIR vitals over backend vitals
   const vitals = fhirVitals || summary.latest_vitals;
-  const hasVitals = vitals && (vitals.heart_rate || vitals.blood_pressure || vitals.oxygen_saturation || vitals.temperature || vitals.respiratory_rate);
+  const hasVitals = vitals && (vitals.heart_rate || vitals.blood_pressure || vitals.oxygen_saturation || vitals.temperature || vitals.respiratory_rate || vitals.glucose || vitals.ecg_rhythm);
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -361,6 +371,23 @@ function PatientOverview({ summary, fhirVitals }: { summary: PatientClinicalSumm
             )}
             {vitals.respiratory_rate && (
               <VitalItem label="Resp. Rate" value={`${vitals.respiratory_rate} /min`} />
+            )}
+            {vitals.glucose && (
+              <VitalItem label="Blood Sugar" value={`${vitals.glucose} mg/dL`} />
+            )}
+            {vitals.ecg_rhythm && (
+              <div style={{ gridColumn: "1 / -1", padding: 8, background: vitals.ecg_findings?.length ? "#fef3c7" : "#f0fdf4", borderRadius: 6 }}>
+                <div style={{ fontSize: 11, color: "#666" }}>ECG</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#333" }}>{vitals.ecg_rhythm}</div>
+                {vitals.ecg_interpretation && (
+                  <div style={{ fontSize: 12, color: "#475569", marginTop: 2 }}>{vitals.ecg_interpretation}</div>
+                )}
+                {vitals.ecg_findings && vitals.ecg_findings.length > 0 && (
+                  <div style={{ fontSize: 11, color: "#d97706", marginTop: 4 }}>
+                    Findings: {vitals.ecg_findings.join(", ")}
+                  </div>
+                )}
+              </div>
             )}
             {vitals.recorded_at && (
               <div style={{ gridColumn: "1 / -1", fontSize: 11, color: "#999", marginTop: 8 }}>
