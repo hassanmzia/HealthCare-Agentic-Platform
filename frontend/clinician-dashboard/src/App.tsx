@@ -95,7 +95,7 @@ function VitalsDashboard() {
 
   const obsQ = useQuery({
     queryKey: ["obs", patientRef],
-    queryFn: () => fetchObservations({ patientRef: patientRef || undefined, category: "vital-signs", count: 200 }),
+    queryFn: () => fetchObservations({ patientRef: patientRef || undefined, count: 200 }),
     refetchInterval: 15000,
   });
 
