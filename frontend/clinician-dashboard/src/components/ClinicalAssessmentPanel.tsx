@@ -217,19 +217,20 @@ export function ClinicalAssessmentPanel({ patientId, fhirId }: Props) {
   };
 
   const handleGenerateDocument = async () => {
-    if (!assessment?.assessment?.persisted_recommendation_id) {
+    if (!assessment?.assessment?.assessment_id && !assessment?.assessment?.persisted_recommendation_id) {
       alert("Assessment not persisted to backend. Cannot generate document.");
       return;
     }
 
     await documentMutation.mutateAsync({
-      assessmentId: String(assessment.assessment.persisted_recommendation_id),
+      assessmentId: assessment.assessment.assessment_id || String(assessment.assessment.persisted_recommendation_id),
       reviewId: reviewState.submittedReview?.id,
     });
   };
 
   const handleCreateEHROrders = async () => {
-    if (!assessment?.assessment?.persisted_recommendation_id || !reviewState.submittedReview?.id) {
+    const assessmentId = assessment?.assessment?.assessment_id || assessment?.assessment?.persisted_recommendation_id;
+    if (!assessmentId || !reviewState.submittedReview?.id) {
       alert("Review must be submitted before creating EHR orders.");
       return;
     }
@@ -241,7 +242,7 @@ export function ClinicalAssessmentPanel({ patientId, fhirId }: Props) {
     }
 
     await ehrOrdersMutation.mutateAsync({
-      assessmentId: String(assessment.assessment.persisted_recommendation_id),
+      assessmentId: assessment.assessment.assessment_id || String(assessment.assessment.persisted_recommendation_id),
       reviewId: reviewState.submittedReview.id,
       treatmentIndices: approvedTreatmentIndices,
     });
