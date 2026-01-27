@@ -15,9 +15,23 @@ type Props = {
   fhirId?: string;
 };
 
+type ReviewState = {
+  approvedDiagnoses: Set<number>;
+  approvedTreatments: Set<number>;
+  physicianNotes: string;
+  reviewStatus: "pending" | "approved" | "rejected" | "modified";
+};
+
 export function ClinicalAssessmentPanel({ patientId, fhirId }: Props) {
   const [assessment, setAssessment] = useState<AssessmentResponse | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
+  const [reviewState, setReviewState] = useState<ReviewState>({
+    approvedDiagnoses: new Set(),
+    approvedTreatments: new Set(),
+    physicianNotes: "",
+    reviewStatus: "pending",
+  });
+  const [isReviewing, setIsReviewing] = useState(false);
 
   // Fetch LLM status
   const llmStatusQuery = useQuery({
@@ -31,8 +45,55 @@ export function ClinicalAssessmentPanel({ patientId, fhirId }: Props) {
     mutationFn: () => fetchClinicalAssessment(patientId, fhirId),
     onSuccess: (data) => {
       setAssessment(data);
+      // Initialize review state with all items approved by default
+      if (data.assessment) {
+        setReviewState({
+          approvedDiagnoses: new Set(data.assessment.diagnoses.map((_, i) => i)),
+          approvedTreatments: new Set(data.assessment.treatments.map((_, i) => i)),
+          physicianNotes: "",
+          reviewStatus: "pending",
+        });
+      }
+      setIsReviewing(false);
     },
   });
+
+  const handleStartReview = () => {
+    setIsReviewing(true);
+  };
+
+  const handleToggleDiagnosis = (index: number) => {
+    setReviewState(prev => {
+      const newSet = new Set(prev.approvedDiagnoses);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return { ...prev, approvedDiagnoses: newSet };
+    });
+  };
+
+  const handleToggleTreatment = (index: number) => {
+    setReviewState(prev => {
+      const newSet = new Set(prev.approvedTreatments);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return { ...prev, approvedTreatments: newSet };
+    });
+  };
+
+  const handleSubmitReview = async (status: "approved" | "rejected" | "modified") => {
+    // In a real app, this would call an API to save the review
+    setReviewState(prev => ({ ...prev, reviewStatus: status }));
+    setIsReviewing(false);
+
+    // Show confirmation
+    alert(`Review submitted as "${status}". In production, this would save to the database and create clinical documentation.`);
+  };
 
   const cardStyle = { border: "1px solid #eee", borderRadius: 12, padding: 16, marginBottom: 16 };
 
@@ -103,6 +164,13 @@ export function ClinicalAssessmentPanel({ patientId, fhirId }: Props) {
           llmProvider={assessment.llm_provider}
           showReasoning={showReasoning}
           onToggleReasoning={() => setShowReasoning(!showReasoning)}
+          reviewState={reviewState}
+          isReviewing={isReviewing}
+          onStartReview={handleStartReview}
+          onToggleDiagnosis={handleToggleDiagnosis}
+          onToggleTreatment={handleToggleTreatment}
+          onSubmitReview={handleSubmitReview}
+          onNotesChange={(notes) => setReviewState(prev => ({ ...prev, physicianNotes: notes }))}
         />
       )}
 
@@ -122,13 +190,34 @@ function AssessmentResults({
   llmProvider,
   showReasoning,
   onToggleReasoning,
+  reviewState,
+  isReviewing,
+  onStartReview,
+  onToggleDiagnosis,
+  onToggleTreatment,
+  onSubmitReview,
+  onNotesChange,
 }: {
   assessment: ClinicalAssessment;
   llmProvider?: string;
   showReasoning: boolean;
   onToggleReasoning: () => void;
+  reviewState: ReviewState;
+  isReviewing: boolean;
+  onStartReview: () => void;
+  onToggleDiagnosis: (index: number) => void;
+  onToggleTreatment: (index: number) => void;
+  onSubmitReview: (status: "approved" | "rejected" | "modified") => void;
+  onNotesChange: (notes: string) => void;
 }) {
   const cardStyle = { border: "1px solid #eee", borderRadius: 12, padding: 16, marginBottom: 16 };
+
+  const reviewStatusColors = {
+    pending: { bg: "#fef3c7", text: "#92400e", label: "Pending Review" },
+    approved: { bg: "#dcfce7", text: "#166534", label: "Approved" },
+    rejected: { bg: "#fee2e2", text: "#dc2626", label: "Rejected" },
+    modified: { bg: "#dbeafe", text: "#1e40af", label: "Modified & Approved" },
+  };
 
   return (
     <div>
@@ -145,11 +234,37 @@ function AssessmentResults({
               {llmProvider && <span> • LLM: {llmProvider}</span>}
             </div>
           </div>
-          {assessment.requires_human_review && (
-            <div style={{ padding: "6px 12px", background: "#fbbf24", borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
-              Requires Human Review
-            </div>
-          )}
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {reviewState.reviewStatus !== "pending" && (
+              <div style={{
+                padding: "6px 12px",
+                background: reviewStatusColors[reviewState.reviewStatus].bg,
+                color: reviewStatusColors[reviewState.reviewStatus].text,
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 600,
+              }}>
+                {reviewStatusColors[reviewState.reviewStatus].label}
+              </div>
+            )}
+            {assessment.requires_human_review && reviewState.reviewStatus === "pending" && (
+              <button
+                onClick={onStartReview}
+                style={{
+                  padding: "8px 16px",
+                  background: isReviewing ? "#64748b" : "#059669",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 6,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                {isReviewing ? "Reviewing..." : "Start Review"}
+              </button>
+            )}
+          </div>
         </div>
 
         {assessment.review_reason && (
@@ -168,6 +283,152 @@ function AssessmentResults({
           </div>
         )}
       </div>
+
+      {/* Physician Review Panel */}
+      {isReviewing && (
+        <div style={{ ...cardStyle, background: "#eff6ff", border: "2px solid #3b82f6" }}>
+          <h4 style={{ margin: "0 0 16px", color: "#1e40af", display: "flex", alignItems: "center", gap: 8 }}>
+            <span>👨‍⚕️</span> Physician Review
+          </h4>
+
+          {/* Review Diagnoses */}
+          <div style={{ marginBottom: 16 }}>
+            <h5 style={{ margin: "0 0 8px", fontSize: 14 }}>Review Diagnoses</h5>
+            {assessment.diagnoses.map((dx, i) => (
+              <label
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: 8,
+                  background: reviewState.approvedDiagnoses.has(i) ? "#dcfce7" : "#fee2e2",
+                  borderRadius: 6,
+                  marginBottom: 4,
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={reviewState.approvedDiagnoses.has(i)}
+                  onChange={() => onToggleDiagnosis(i)}
+                  style={{ width: 18, height: 18 }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 500 }}>{dx.diagnosis}</div>
+                  <div style={{ fontSize: 12, color: "#64748b" }}>
+                    {dx.icd10_code} • Confidence: {(dx.confidence * 100).toFixed(0)}%
+                  </div>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 600, color: reviewState.approvedDiagnoses.has(i) ? "#166534" : "#dc2626" }}>
+                  {reviewState.approvedDiagnoses.has(i) ? "APPROVED" : "REJECTED"}
+                </span>
+              </label>
+            ))}
+          </div>
+
+          {/* Review Treatments */}
+          <div style={{ marginBottom: 16 }}>
+            <h5 style={{ margin: "0 0 8px", fontSize: 14 }}>Review Treatments</h5>
+            {assessment.treatments.map((tx, i) => (
+              <label
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: 8,
+                  background: reviewState.approvedTreatments.has(i) ? "#dcfce7" : "#fee2e2",
+                  borderRadius: 6,
+                  marginBottom: 4,
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={reviewState.approvedTreatments.has(i)}
+                  onChange={() => onToggleTreatment(i)}
+                  style={{ width: 18, height: 18 }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 500 }}>{tx.description}</div>
+                  <div style={{ fontSize: 12, color: "#64748b" }}>
+                    {tx.treatment_type} • Priority: {tx.priority}
+                  </div>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 600, color: reviewState.approvedTreatments.has(i) ? "#166534" : "#dc2626" }}>
+                  {reviewState.approvedTreatments.has(i) ? "APPROVED" : "REJECTED"}
+                </span>
+              </label>
+            ))}
+          </div>
+
+          {/* Physician Notes */}
+          <div style={{ marginBottom: 16 }}>
+            <h5 style={{ margin: "0 0 8px", fontSize: 14 }}>Physician Notes</h5>
+            <textarea
+              value={reviewState.physicianNotes}
+              onChange={(e) => onNotesChange(e.target.value)}
+              placeholder="Add clinical notes, modifications, or additional recommendations..."
+              style={{
+                width: "100%",
+                minHeight: 80,
+                padding: 12,
+                borderRadius: 6,
+                border: "1px solid #cbd5e1",
+                fontSize: 13,
+                resize: "vertical",
+              }}
+            />
+          </div>
+
+          {/* Submit Buttons */}
+          <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+            <button
+              onClick={() => onSubmitReview("rejected")}
+              style={{
+                padding: "10px 20px",
+                background: "#dc2626",
+                color: "white",
+                border: "none",
+                borderRadius: 6,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Reject Assessment
+            </button>
+            <button
+              onClick={() => onSubmitReview("modified")}
+              style={{
+                padding: "10px 20px",
+                background: "#2563eb",
+                color: "white",
+                border: "none",
+                borderRadius: 6,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Approve with Modifications
+            </button>
+            <button
+              onClick={() => onSubmitReview("approved")}
+              style={{
+                padding: "10px 20px",
+                background: "#059669",
+                color: "white",
+                border: "none",
+                borderRadius: 6,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Approve All
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Critical Findings */}
       {assessment.critical_findings.length > 0 && (
