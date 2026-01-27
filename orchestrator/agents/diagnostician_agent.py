@@ -403,7 +403,9 @@ class DiagnosticianAgent(BaseAgent):
             return findings
 
         for lab in labs[:20]:  # Limit to recent labs
-            interpretation = lab.get("interpretation", {})
+            if not lab or not isinstance(lab, dict):
+                continue
+            interpretation = lab.get("interpretation") or {}
             if interpretation and interpretation.get("severity") != "normal":
                 findings.append(ClinicalFinding(
                     type="lab",
