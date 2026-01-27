@@ -313,13 +313,22 @@ class VitalsGenerator:
             ecg_obs = {
                 "resourceType": "Observation",
                 "status": "final",
-                "category": [{
-                    "coding": [{
-                        "system": "http://terminology.hl7.org/CodeSystem/observation-category",
-                        "code": "procedure",
-                        "display": "Procedure"
-                    }]
-                }],
+                "category": [
+                    {
+                        "coding": [{
+                            "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                            "code": "vital-signs",
+                            "display": "Vital Signs"
+                        }]
+                    },
+                    {
+                        "coding": [{
+                            "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                            "code": "procedure",
+                            "display": "Procedure"
+                        }]
+                    }
+                ],
                 "code": {
                     "coding": [{
                         "system": "http://loinc.org",
@@ -338,6 +347,7 @@ class VitalsGenerator:
                 "valueCodeableConcept": {
                     "coding": [{
                         "system": "http://snomed.info/sct",
+                        "code": "271921002",
                         "display": ecg_data["rhythm"]
                     }],
                     "text": ecg_data["interpretation"]
