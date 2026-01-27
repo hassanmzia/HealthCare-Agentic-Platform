@@ -5,6 +5,7 @@ import {
   fetchLLMStatus,
   submitPhysicianReview,
   generateClinicalDocument,
+  getDocumentDownloadUrl,
   createEHROrders,
   type AssessmentResponse,
   type ClinicalAssessment,
@@ -692,15 +693,53 @@ function AssessmentResults({
             <div style={{ marginTop: 16, padding: 12, background: "white", borderRadius: 6, border: "1px solid #e2e8f0" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <h5 style={{ margin: 0 }}>Generated Document: {reviewState.generatedDocument.title}</h5>
-                <span style={{
-                  padding: "2px 8px",
-                  background: reviewState.generatedDocument.status === "final" ? "#dcfce7" : "#fef3c7",
-                  borderRadius: 4,
-                  fontSize: 11,
-                  fontWeight: 600,
-                }}>
-                  {reviewState.generatedDocument.status.toUpperCase()}
-                </span>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <a
+                    href={getDocumentDownloadUrl(reviewState.generatedDocument.id, "pdf")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: "4px 10px",
+                      background: "#dc2626",
+                      color: "white",
+                      border: "none",
+                      borderRadius: 4,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      textDecoration: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Download PDF
+                  </a>
+                  <a
+                    href={getDocumentDownloadUrl(reviewState.generatedDocument.id, "html")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: "4px 10px",
+                      background: "#2563eb",
+                      color: "white",
+                      border: "none",
+                      borderRadius: 4,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      textDecoration: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Download HTML
+                  </a>
+                  <span style={{
+                    padding: "2px 8px",
+                    background: reviewState.generatedDocument.status === "final" ? "#dcfce7" : "#fef3c7",
+                    borderRadius: 4,
+                    fontSize: 11,
+                    fontWeight: 600,
+                  }}>
+                    {reviewState.generatedDocument.status.toUpperCase()}
+                  </span>
+                </div>
               </div>
               <div
                 style={{ fontSize: 13, maxHeight: 300, overflow: "auto", background: "#f8fafc", padding: 12, borderRadius: 4 }}
