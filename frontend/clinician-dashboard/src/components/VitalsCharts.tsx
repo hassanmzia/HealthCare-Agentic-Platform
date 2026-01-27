@@ -8,6 +8,9 @@ type Row = {
   unit: string;
   bp_sys: number | null;
   bp_dia: number | null;
+  ecg_rhythm?: string | null;
+  ecg_interpretation?: string | null;
+  ecg_findings?: string[];
 };
 
 function compactTime(t: string) {
@@ -23,9 +26,16 @@ export function VitalsCharts({ rows }: { rows: Row[] }) {
   const spo2 = rows.filter(r => r.loinc === "59408-5" && r.value != null).map(r => ({ t: compactTime(r.time), v: r.value }));
   const temp = rows.filter(r => r.loinc === "8310-5" && r.value != null).map(r => ({ t: compactTime(r.time), v: r.value }));
   const weight = rows.filter(r => r.loinc === "29463-7" && r.value != null).map(r => ({ t: compactTime(r.time), v: r.value }));
+  const glucose = rows.filter(r => r.loinc === "2339-0" && r.value != null).map(r => ({ t: compactTime(r.time), v: r.value }));
   const bp = rows
     .filter(r => r.bp_sys != null || r.bp_dia != null)
     .map(r => ({ t: compactTime(r.time), sys: r.bp_sys, dia: r.bp_dia }));
+  const ecg = rows.filter(r => r.loinc === "8601-7").map(r => ({
+    t: compactTime(r.time),
+    rhythm: r.ecg_rhythm,
+    interpretation: r.ecg_interpretation,
+    findings: r.ecg_findings || [],
+  }));
 
   const Card = ({ title, children }: { title: string; children: any }) => (
     <div style={{ border: "1px solid #eee", borderRadius: 14, padding: 12 }}>
@@ -76,6 +86,48 @@ export function VitalsCharts({ rows }: { rows: Row[] }) {
             <Line type="monotone" dataKey="dia" name="DIA" dot={false} />
           </LineChart>
         </ResponsiveContainer>
+      </Card>
+      <Card title="Blood Glucose">
+        <SimpleLine data={glucose} dataKey="v" name="mg/dL" />
+      </Card>
+      <Card title="ECG Interpretation">
+        {ecg.length > 0 ? (
+          <div style={{ height: "100%", overflow: "auto", fontSize: 12 }}>
+            {ecg.map((e, i) => (
+              <div key={i} style={{
+                padding: 8,
+                marginBottom: 6,
+                background: e.findings?.some(f => f.includes("fibrillation") || f.includes("ST elevation") || f.includes("ischemic")) ? "#fee2e2" : "#f0fdf4",
+                borderRadius: 6,
+                border: "1px solid #e5e7eb"
+              }}>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>{e.rhythm || "Unknown rhythm"}</div>
+                <div style={{ color: "#64748b", fontSize: 11 }}>{e.t}</div>
+                {e.interpretation && <div style={{ marginTop: 4, color: "#475569" }}>{e.interpretation}</div>}
+                {e.findings && e.findings.length > 0 && (
+                  <div style={{ marginTop: 4, fontSize: 11 }}>
+                    {e.findings.map((f, j) => (
+                      <span key={j} style={{
+                        display: "inline-block",
+                        padding: "2px 6px",
+                        margin: "2px 4px 2px 0",
+                        background: f.includes("fibrillation") || f.includes("ST") ? "#fecaca" : "#fef3c7",
+                        borderRadius: 4,
+                        color: f.includes("fibrillation") || f.includes("ST") ? "#dc2626" : "#92400e"
+                      }}>
+                        {f}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8" }}>
+            No ECG data available
+          </div>
+        )}
       </Card>
     </div>
   );
