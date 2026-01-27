@@ -18,6 +18,10 @@ from .treatment_agent import TreatmentAgent
 from .safety_agent import SafetyAgent
 from .coding_agent import CodingAgent
 from .cardiology_agent import CardiologyAgent
+from .radiology_agent import RadiologyAgent
+from .pathology_agent import PathologyAgent
+from .gastroenterology_agent import GastroenterologyAgent
+from .oncology_agent import OncologyAgent
 
 
 class ComprehensiveRecommendation(BaseModel):
@@ -90,6 +94,10 @@ class SupervisorAgent(BaseAgent):
 
         # Initialize specialist agents
         self.cardiology = CardiologyAgent()
+        self.radiology = RadiologyAgent()
+        self.pathology = PathologyAgent()
+        self.gastroenterology = GastroenterologyAgent()
+        self.oncology = OncologyAgent()
 
         # Agent registry for A2A communication
         self.agents = {
@@ -97,7 +105,11 @@ class SupervisorAgent(BaseAgent):
             "treatment": self.treatment,
             "safety": self.safety,
             "coding": self.coding,
-            "cardiology": self.cardiology
+            "cardiology": self.cardiology,
+            "radiology": self.radiology,
+            "pathology": self.pathology,
+            "gastroenterology": self.gastroenterology,
+            "oncology": self.oncology
         }
 
     def _setup_capabilities(self):
@@ -143,7 +155,8 @@ class SupervisorAgent(BaseAgent):
             all_warnings.extend(diag_output.warnings)
             reasoning_steps.extend([f"[Diagnostician] {r}" for r in diag_output.reasoning_steps])
 
-            # Step 3: Check for cardiac involvement - run Cardiology Agent
+            # Step 3: Check for specialist involvement and run appropriate specialists
+            # 3a: Cardiology
             cardiac_indicators = self._check_cardiac_involvement(context, diag_output.findings)
             if cardiac_indicators:
                 reasoning_steps.append("\n=== Step 3a: Cardiology Specialist Review ===")
@@ -155,6 +168,55 @@ class SupervisorAgent(BaseAgent):
                 all_treatments.extend(cardio_output.treatments)
                 all_warnings.extend(cardio_output.warnings)
                 reasoning_steps.extend([f"[Cardiology] {r}" for r in cardio_output.reasoning_steps])
+
+            # 3b: Pathology (Lab Analysis)
+            if self._check_pathology_involvement(context):
+                reasoning_steps.append("\n=== Step 3b: Pathology Specialist Review ===")
+                path_output = await self.pathology.process(context)
+                agent_outputs["pathology"] = path_output.dict()
+
+                all_findings.extend(path_output.findings)
+                all_diagnoses.extend(path_output.diagnoses)
+                all_warnings.extend(path_output.warnings)
+                reasoning_steps.extend([f"[Pathology] {r}" for r in path_output.reasoning_steps])
+
+            # 3c: Radiology (if imaging data available)
+            if self._check_radiology_involvement(context):
+                reasoning_steps.append("\n=== Step 3c: Radiology Specialist Review ===")
+                rad_output = await self.radiology.process(context)
+                agent_outputs["radiology"] = rad_output.dict()
+
+                all_findings.extend(rad_output.findings)
+                all_diagnoses.extend(rad_output.diagnoses)
+                all_warnings.extend(rad_output.warnings)
+                reasoning_steps.extend([f"[Radiology] {r}" for r in rad_output.reasoning_steps])
+
+            # 3d: Gastroenterology (if GI involvement)
+            if self._check_gi_involvement(context, diag_output.findings):
+                reasoning_steps.append("\n=== Step 3d: Gastroenterology Specialist Review ===")
+                gi_output = await self.gastroenterology.process(context)
+                agent_outputs["gastroenterology"] = gi_output.dict()
+
+                all_findings.extend(gi_output.findings)
+                all_diagnoses.extend(gi_output.diagnoses)
+                all_treatments.extend(gi_output.treatments)
+                all_warnings.extend(gi_output.warnings)
+                reasoning_steps.extend([f"[Gastroenterology] {r}" for r in gi_output.reasoning_steps])
+
+            # 3e: Oncology (if cancer suspicion or known malignancy)
+            suspicious_findings = [f for f in all_findings if f.status == "critical" and
+                                   any(term in f.name.lower() for term in ["mass", "tumor", "nodule", "malignant"])]
+            if self._check_oncology_involvement(context, all_findings):
+                reasoning_steps.append("\n=== Step 3e: Oncology Specialist Review ===")
+                onc_task = {"suspicious_findings": [{"description": f.name, "location": f.source} for f in suspicious_findings]}
+                onc_output = await self.oncology.process(context, onc_task)
+                agent_outputs["oncology"] = onc_output.dict()
+
+                all_findings.extend(onc_output.findings)
+                all_diagnoses.extend(onc_output.diagnoses)
+                all_treatments.extend(onc_output.treatments)
+                all_warnings.extend(onc_output.warnings)
+                reasoning_steps.extend([f"[Oncology] {r}" for r in onc_output.reasoning_steps])
 
             # Step 4: Run Treatment Agent with diagnoses
             reasoning_steps.append("\n=== Step 4: Treatment Planning ===")
@@ -261,6 +323,97 @@ class SupervisorAgent(BaseAgent):
                 continue
             display = condition.get("display", "").lower()
             if any(term in display for term in ["heart", "cardiac", "hypertension", "coronary", "arrhythmia"]):
+                return True
+
+        return False
+
+    def _check_pathology_involvement(self, context: PatientContext) -> bool:
+        """Check if pathology/lab specialist review is needed"""
+        # Always run pathology if labs are available
+        if context.labs and len(context.labs) > 0:
+            return True
+        return False
+
+    def _check_radiology_involvement(self, context: PatientContext) -> bool:
+        """Check if radiology specialist review is needed"""
+        # Check for imaging data
+        if hasattr(context, 'imaging_results') and context.imaging_results:
+            return True
+
+        # Check for imaging-related procedures
+        for proc in (context.recent_procedures or []):
+            if not proc or not isinstance(proc, dict):
+                continue
+            display = proc.get("display", "").lower()
+            if any(term in display for term in ["x-ray", "xray", "ct", "mri", "radiograph", "scan", "imaging"]):
+                return True
+
+        # Check for conditions that warrant imaging
+        for condition in (context.conditions or []):
+            if not condition or not isinstance(condition, dict):
+                continue
+            display = condition.get("display", "").lower()
+            if any(term in display for term in ["pneumonia", "fracture", "mass", "tumor", "stroke", "trauma"]):
+                return True
+
+        return False
+
+    def _check_gi_involvement(self, context: PatientContext, findings: List[ClinicalFinding]) -> bool:
+        """Check if gastroenterology specialist review is needed"""
+        # Check for GI-related findings
+        for finding in findings:
+            name_lower = finding.name.lower()
+            if any(term in name_lower for term in ["abdominal", "gi", "gastro", "bowel", "liver", "colon"]):
+                return True
+
+        # Check for GI conditions
+        for condition in (context.conditions or []):
+            if not condition or not isinstance(condition, dict):
+                continue
+            display = condition.get("display", "").lower()
+            gi_terms = ["abdominal", "gastro", "bowel", "colon", "liver", "hepat", "gerd",
+                       "ulcer", "crohn", "colitis", "diverticul", "pancreat", "gi bleed"]
+            if any(term in display for term in gi_terms):
+                return True
+
+        # Check for GI procedures
+        for proc in (context.recent_procedures or []):
+            if not proc or not isinstance(proc, dict):
+                continue
+            display = proc.get("display", "").lower()
+            if any(term in display for term in ["colonoscopy", "endoscopy", "egd", "ercp"]):
+                return True
+
+        return False
+
+    def _check_oncology_involvement(self, context: PatientContext, findings: List[ClinicalFinding]) -> bool:
+        """Check if oncology specialist review is needed"""
+        # Check for cancer-related findings
+        for finding in findings:
+            name_lower = finding.name.lower()
+            if any(term in name_lower for term in ["cancer", "tumor", "mass", "malignant", "carcinoma", "neoplasm"]):
+                return True
+
+        # Check for cancer-related conditions
+        for condition in (context.conditions or []):
+            if not condition or not isinstance(condition, dict):
+                continue
+            display = condition.get("display", "").lower()
+            code = condition.get("code", "")
+            # Check ICD-10 C codes (malignant neoplasms)
+            if code and code.startswith("C"):
+                return True
+            cancer_terms = ["cancer", "carcinoma", "malignant", "neoplasm", "tumor", "lymphoma", "leukemia", "melanoma"]
+            if any(term in display for term in cancer_terms):
+                return True
+
+        # Check for elevated tumor markers
+        tumor_marker_codes = ["psa", "cea", "ca125", "ca19-9", "afp"]
+        for lab in (context.labs or []):
+            if not lab or not isinstance(lab, dict):
+                continue
+            name = lab.get("display", lab.get("name", "")).lower()
+            if any(marker in name for marker in tumor_marker_codes):
                 return True
 
         return False
@@ -402,7 +555,10 @@ class SupervisorAgent(BaseAgent):
             "urgency": urgency,
             "active_conditions": len(context.conditions or []),
             "active_medications": len(context.medications or []),
-            "known_allergies": len(context.allergies or [])
+            "known_allergies": len(context.allergies or []),
+            "chief_complaint": context.chief_complaint,
+            "history_present_illness": context.history_present_illness,
+            "physician_notes": context.physician_notes
         }
 
         return ComprehensiveRecommendation(

@@ -85,6 +85,9 @@ class PatientContext(BaseModel):
     past_medical_history: Optional[List[str]] = None
     social_history: Optional[dict] = None
     family_history: Optional[List[str]] = None
+    physician_notes: Optional[str] = None  # Doctor's observations and notes
+    review_of_systems: Optional[dict] = None  # Symptom checklist by system
+    physical_exam: Optional[dict] = None  # Physical examination findings
 
     # Additional context
     recent_procedures: Optional[List[dict]] = None

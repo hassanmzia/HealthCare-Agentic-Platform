@@ -13,16 +13,42 @@ from dataclasses import dataclass
 class PatientProfile:
     """Patient profile that influences vital sign generation."""
     age: int = 50
-    condition: str = "normal"  # normal, hypertensive, hypotensive, fever, tachycardic, bradycardic, hypoxic
+    condition: str = "normal"  # normal, hypertensive, hypotensive, fever, tachycardic, bradycardic, hypoxic, diabetic, diabetic_hyper, afib, mi_risk
 
     @classmethod
     def random(cls) -> "PatientProfile":
         conditions = ["normal", "normal", "normal", "hypertensive", "hypotensive",
-                      "fever", "tachycardic", "bradycardic", "hypoxic"]
+                      "fever", "tachycardic", "bradycardic", "hypoxic", "diabetic", "afib"]
         return cls(
             age=random.randint(25, 85),
             condition=random.choice(conditions)
         )
+
+
+# ECG Interpretations for different conditions
+ECG_PATTERNS = {
+    "normal": [
+        {"rhythm": "Normal sinus rhythm", "rate": "60-100", "interpretation": "Normal ECG", "findings": []},
+        {"rhythm": "Sinus rhythm", "rate": "60-100", "interpretation": "Within normal limits", "findings": []},
+    ],
+    "tachycardic": [
+        {"rhythm": "Sinus tachycardia", "rate": ">100", "interpretation": "Elevated heart rate", "findings": ["Tachycardia"]},
+    ],
+    "bradycardic": [
+        {"rhythm": "Sinus bradycardia", "rate": "<60", "interpretation": "Slow heart rate", "findings": ["Bradycardia"]},
+    ],
+    "afib": [
+        {"rhythm": "Atrial fibrillation", "rate": "irregular", "interpretation": "Irregular rhythm, absent P waves", "findings": ["Atrial fibrillation", "Irregularly irregular rhythm"]},
+        {"rhythm": "Atrial fibrillation with RVR", "rate": ">110", "interpretation": "Rapid ventricular response", "findings": ["Atrial fibrillation", "Rapid ventricular response"]},
+    ],
+    "mi_risk": [
+        {"rhythm": "Sinus rhythm", "rate": "60-100", "interpretation": "ST elevation in leads V1-V4", "findings": ["ST elevation", "Possible anterior MI"]},
+        {"rhythm": "Sinus rhythm", "rate": "60-100", "interpretation": "ST depression, T wave inversion", "findings": ["ST depression", "T wave inversion", "Ischemic changes"]},
+    ],
+    "hypertensive": [
+        {"rhythm": "Sinus rhythm", "rate": "60-100", "interpretation": "Left ventricular hypertrophy pattern", "findings": ["LVH by voltage criteria"]},
+    ],
+}
 
 
 class VitalsGenerator:
@@ -67,6 +93,20 @@ class VitalsGenerator:
             "respiratory_rate": (22, 35),
             "heart_rate": (90, 130),
         },
+        "diabetic": {
+            "glucose": (100, 140),  # Slightly elevated fasting glucose
+        },
+        "diabetic_hyper": {
+            "glucose": (180, 350),  # Hyperglycemia
+            "heart_rate": (90, 110),
+        },
+        "afib": {
+            "heart_rate": (80, 160),  # Irregular, often fast
+        },
+        "mi_risk": {
+            "heart_rate": (60, 110),
+            "blood_pressure_systolic": (90, 140),
+        },
     }
 
     # LOINC codes for vital signs
@@ -78,6 +118,7 @@ class VitalsGenerator:
         "temperature": {"code": "8310-5", "display": "Body temperature", "unit": "Cel"},
         "respiratory_rate": {"code": "9279-1", "display": "Respiratory rate", "unit": "/min"},
         "glucose": {"code": "2339-0", "display": "Glucose [Mass/volume] in Blood", "unit": "mg/dL"},
+        "ecg": {"code": "8601-7", "display": "ECG interpretation", "unit": "interpretation"},
     }
 
     # Map device capabilities to vitals
@@ -92,11 +133,40 @@ class VitalsGenerator:
         "respiratory_rate": ["respiratory_rate"],
         "respiration": ["respiratory_rate"],
         "glucose": ["glucose"],
+        "blood_sugar": ["glucose"],
+        "ecg": ["ecg"],
+        "ekg": ["ecg"],
+        "electrocardiogram": ["ecg"],
     }
 
     def __init__(self, profile: Optional[PatientProfile] = None):
         self.profile = profile or PatientProfile()
         self._last_values = {}  # For realistic variations
+        self._last_ecg = None  # For ECG consistency
+
+    def _generate_ecg(self) -> dict:
+        """Generate ECG interpretation based on patient condition."""
+        condition = self.profile.condition
+
+        # Map condition to ECG pattern category
+        if condition in ECG_PATTERNS:
+            patterns = ECG_PATTERNS[condition]
+        elif condition in ["diabetic", "diabetic_hyper"]:
+            # Diabetics might have normal or tachycardic patterns
+            patterns = ECG_PATTERNS["normal"] if random.random() > 0.3 else ECG_PATTERNS["tachycardic"]
+        elif condition in ["hypotensive", "fever", "hypoxic"]:
+            patterns = ECG_PATTERNS["tachycardic"]
+        else:
+            patterns = ECG_PATTERNS["normal"]
+
+        ecg = random.choice(patterns)
+
+        # Add some variation in findings
+        if random.random() < 0.1:  # 10% chance of PVCs
+            ecg = ecg.copy()
+            ecg["findings"] = ecg["findings"] + ["Occasional PVCs"]
+
+        return ecg
 
     def _get_range(self, vital: str) -> tuple:
         """Get the range for a vital sign based on patient condition."""
@@ -144,14 +214,22 @@ class VitalsGenerator:
             if cap_lower in self.CAPABILITY_VITALS:
                 vitals_to_generate.update(self.CAPABILITY_VITALS[cap_lower])
 
-        # If no capabilities specified, generate common vitals
+        # If no capabilities specified, generate common vitals (including glucose)
         if not vitals_to_generate:
             vitals_to_generate = {"heart_rate", "spo2", "blood_pressure_systolic",
-                                  "blood_pressure_diastolic", "temperature", "respiratory_rate"}
+                                  "blood_pressure_diastolic", "temperature", "respiratory_rate",
+                                  "glucose"}
 
         # Generate each vital
         for vital in vitals_to_generate:
-            if vital in self.LOINC_CODES:
+            if vital == "ecg":
+                # ECG is special - it's an interpretation, not a numeric value
+                ecg_data = self._generate_ecg()
+                vitals[vital] = {
+                    "value": ecg_data,
+                    "loinc": self.LOINC_CODES[vital]
+                }
+            elif vital in self.LOINC_CODES:
                 vitals[vital] = {
                     "value": self._generate_value(vital),
                     "loinc": self.LOINC_CODES[vital]
@@ -228,10 +306,83 @@ class VitalsGenerator:
             }
             observations.append(bp_obs)
 
+        # Handle ECG as special observation with interpretation
+        if "ecg" in vitals:
+            ecg_data = vitals["ecg"]["value"]
+            loinc = vitals["ecg"]["loinc"]
+            ecg_obs = {
+                "resourceType": "Observation",
+                "status": "final",
+                "category": [{
+                    "coding": [{
+                        "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                        "code": "procedure",
+                        "display": "Procedure"
+                    }]
+                }],
+                "code": {
+                    "coding": [{
+                        "system": "http://loinc.org",
+                        "code": loinc["code"],
+                        "display": loinc["display"]
+                    }],
+                    "text": "ECG Interpretation"
+                },
+                "subject": {
+                    "reference": f"Patient/{patient_id}"
+                },
+                "device": {
+                    "reference": f"Device/{device_id}"
+                },
+                "effectiveDateTime": timestamp,
+                "valueCodeableConcept": {
+                    "coding": [{
+                        "system": "http://snomed.info/sct",
+                        "display": ecg_data["rhythm"]
+                    }],
+                    "text": ecg_data["interpretation"]
+                },
+                "component": [
+                    {
+                        "code": {
+                            "coding": [{
+                                "system": "http://loinc.org",
+                                "code": "8884-9",
+                                "display": "Heart rhythm"
+                            }]
+                        },
+                        "valueString": ecg_data["rhythm"]
+                    },
+                    {
+                        "code": {
+                            "coding": [{
+                                "system": "http://loinc.org",
+                                "code": "8889-8",
+                                "display": "Heart rate"
+                            }]
+                        },
+                        "valueString": ecg_data["rate"]
+                    }
+                ]
+            }
+            # Add findings as additional components
+            for finding in ecg_data.get("findings", []):
+                ecg_obs["component"].append({
+                    "code": {
+                        "coding": [{
+                            "system": "http://loinc.org",
+                            "code": "18844-1",
+                            "display": "ECG finding"
+                        }]
+                    },
+                    "valueString": finding
+                })
+            observations.append(ecg_obs)
+
         # Handle other vitals as regular observations
         for vital_name, vital_data in vitals.items():
-            # Skip BP components as they're handled above
-            if vital_name in ("blood_pressure_systolic", "blood_pressure_diastolic"):
+            # Skip BP components and ECG as they're handled above
+            if vital_name in ("blood_pressure_systolic", "blood_pressure_diastolic", "ecg"):
                 continue
 
             loinc = vital_data["loinc"]
