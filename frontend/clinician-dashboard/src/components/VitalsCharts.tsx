@@ -31,9 +31,16 @@ export function VitalsCharts({ rows }: { rows: Row[] }) {
   const spo2 = rows.filter(r => r.loinc === "59408-5" && r.value != null).map(r => ({ t: compactTime(r.time), v: r.value }));
   const temp = rows.filter(r => r.loinc === "8310-5" && r.value != null).map(r => ({ t: compactTime(r.time), v: r.value }));
   const weight = rows.filter(r => r.loinc === "29463-7" && r.value != null).map(r => ({ t: compactTime(r.time), v: r.value }));
+  const glucose = rows.filter(r => r.loinc === "2339-0" && r.value != null).map(r => ({ t: compactTime(r.time), v: r.value }));
   const bp = rows
     .filter(r => r.bp_sys != null || r.bp_dia != null)
     .map(r => ({ t: compactTime(r.time), sys: r.bp_sys, dia: r.bp_dia }));
+  const ecg = rows.filter(r => r.loinc === "8601-7").map(r => ({
+    t: compactTime(r.time),
+    rhythm: r.ecg_rhythm,
+    interpretation: r.ecg_interpretation,
+    findings: r.ecg_findings || [],
+  }));
 
   // Blood Sugar/Glucose (LOINC: 2339-0)
   const glucose = rows.filter(r => r.loinc === "2339-0" && r.value != null).map(r => ({ t: compactTime(r.time), v: r.value }));
