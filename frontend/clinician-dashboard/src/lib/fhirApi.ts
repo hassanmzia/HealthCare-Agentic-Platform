@@ -39,18 +39,21 @@ export function normalizeVitals(bundle: FhirBundle<Observation>) {
     const sys = o.component?.find(c => c.code?.coding?.[0]?.code === "8480-6")?.valueQuantity?.value;
     const dia = o.component?.find(c => c.code?.coding?.[0]?.code === "8462-4")?.valueQuantity?.value;
 
-    // ECG special handling (LOINC 8601-7) - extract rhythm from valueCodeableConcept
-    let ecg_rhythm: string | null = null;
-    let ecg_interpretation: string | null = null;
-    let ecg_findings: string[] = [];
+    // ECG special handling (LOINC 8601-7) - has valueCodeableConcept and components
+    let ecg_data = null;
     if (code === "8601-7") {
-      ecg_rhythm = o.valueCodeableConcept?.coding?.[0]?.display ?? o.valueCodeableConcept?.text ?? null;
-      ecg_interpretation = o.valueCodeableConcept?.text ?? null;
-      // Extract findings from components
-      ecg_findings = (o.component ?? [])
-        .filter(c => c.code?.coding?.[0]?.code === "18844-1")
-        .map(c => c.valueString ?? "")
-        .filter(Boolean);
+      const rhythm = o.component?.find(c => c.code?.coding?.[0]?.code === "8884-9")?.valueString
+        || o.valueCodeableConcept?.coding?.[0]?.display
+        || "";
+      const interpretation = o.valueCodeableConcept?.text || "";
+      const findings: string[] = [];
+      // Extract ECG findings from components
+      o.component?.forEach(c => {
+        if (c.code?.coding?.[0]?.code === "18844-1" && c.valueString) {
+          findings.push(c.valueString);
+        }
+      });
+      ecg_data = { rhythm, rate: "", interpretation, findings };
     }
 
     return {
@@ -62,9 +65,7 @@ export function normalizeVitals(bundle: FhirBundle<Observation>) {
       unit: o.valueQuantity?.unit ?? "",
       bp_sys: sys ?? null,
       bp_dia: dia ?? null,
-      ecg_rhythm,
-      ecg_interpretation,
-      ecg_findings,
+      ecg_data,
     };
   });
 

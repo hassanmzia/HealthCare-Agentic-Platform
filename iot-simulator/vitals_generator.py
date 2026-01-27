@@ -214,11 +214,11 @@ class VitalsGenerator:
             if cap_lower in self.CAPABILITY_VITALS:
                 vitals_to_generate.update(self.CAPABILITY_VITALS[cap_lower])
 
-        # If no capabilities specified, generate common vitals (including glucose)
+        # If no capabilities specified, generate common vitals (including glucose and ECG)
         if not vitals_to_generate:
             vitals_to_generate = {"heart_rate", "spo2", "blood_pressure_systolic",
                                   "blood_pressure_diastolic", "temperature", "respiratory_rate",
-                                  "glucose"}
+                                  "glucose", "ecg"}
 
         # Generate each vital
         for vital in vitals_to_generate:

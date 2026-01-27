@@ -75,10 +75,14 @@ export async function resetStats(): Promise<void> {
 
 export const PATIENT_CONDITIONS = [
   { value: "normal", label: "Normal", description: "Healthy baseline vitals" },
-  { value: "hypertensive", label: "Hypertensive", description: "Elevated blood pressure" },
+  { value: "hypertensive", label: "Hypertensive", description: "Elevated blood pressure with LVH pattern on ECG" },
   { value: "hypotensive", label: "Hypotensive", description: "Low blood pressure with compensatory tachycardia" },
   { value: "fever", label: "Fever", description: "Elevated temperature with increased heart rate" },
-  { value: "tachycardic", label: "Tachycardic", description: "Elevated heart rate" },
-  { value: "bradycardic", label: "Bradycardic", description: "Low heart rate" },
+  { value: "tachycardic", label: "Tachycardic", description: "Elevated heart rate with sinus tachycardia on ECG" },
+  { value: "bradycardic", label: "Bradycardic", description: "Low heart rate with sinus bradycardia on ECG" },
   { value: "hypoxic", label: "Hypoxic", description: "Low oxygen saturation with respiratory distress" },
+  { value: "diabetic", label: "Diabetic", description: "Slightly elevated blood glucose (100-140 mg/dL)" },
+  { value: "diabetic_hyper", label: "Diabetic Hyperglycemic", description: "Severe hyperglycemia (180-350 mg/dL)" },
+  { value: "afib", label: "Atrial Fibrillation", description: "Irregular heart rhythm with absent P waves on ECG" },
+  { value: "mi_risk", label: "MI Risk", description: "ST changes on ECG suggesting ischemia or infarction" },
 ];

@@ -1,5 +1,12 @@
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 
+type ECGData = {
+  rhythm: string;
+  rate: string;
+  interpretation: string;
+  findings: string[];
+};
+
 type Row = {
   time: string;
   name: string;
@@ -8,9 +15,7 @@ type Row = {
   unit: string;
   bp_sys: number | null;
   bp_dia: number | null;
-  ecg_rhythm?: string | null;
-  ecg_interpretation?: string | null;
-  ecg_findings?: string[];
+  ecg_data?: ECGData | null;
 };
 
 function compactTime(t: string) {
@@ -35,6 +40,17 @@ export function VitalsCharts({ rows }: { rows: Row[] }) {
     rhythm: r.ecg_rhythm,
     interpretation: r.ecg_interpretation,
     findings: r.ecg_findings || [],
+  }));
+
+  // Blood Sugar/Glucose (LOINC: 2339-0)
+  const glucose = rows.filter(r => r.loinc === "2339-0" && r.value != null).map(r => ({ t: compactTime(r.time), v: r.value }));
+
+  // ECG Interpretations (LOINC: 8601-7)
+  const ecgData = rows.filter(r => r.loinc === "8601-7" && r.ecg_data != null).map(r => ({
+    t: compactTime(r.time),
+    rhythm: r.ecg_data?.rhythm || "",
+    interpretation: r.ecg_data?.interpretation || "",
+    findings: r.ecg_data?.findings || []
   }));
 
   const Card = ({ title, children }: { title: string; children: any }) => (
@@ -82,49 +98,53 @@ export function VitalsCharts({ rows }: { rows: Row[] }) {
             <YAxis tick={{ fontSize: 11 }} />
             <Tooltip />
             <Legend />
-            <Line type="monotone" dataKey="sys" name="SYS" dot={false} />
-            <Line type="monotone" dataKey="dia" name="DIA" dot={false} />
+            <Line type="monotone" dataKey="sys" name="SYS" dot={false} stroke="#ef4444" />
+            <Line type="monotone" dataKey="dia" name="DIA" dot={false} stroke="#3b82f6" />
           </LineChart>
         </ResponsiveContainer>
       </Card>
-      <Card title="Blood Glucose">
-        <SimpleLine data={glucose} dataKey="v" name="mg/dL" />
+      <Card title="Blood Sugar (Glucose)">
+        {glucose.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={glucose}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="t" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} domain={[40, 200]} />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="v" name="mg/dL" dot={false} stroke="#f59e0b" />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#94a3b8" }}>
+            No glucose data available
+          </div>
+        )}
       </Card>
-      <Card title="ECG Interpretation">
-        {ecg.length > 0 ? (
-          <div style={{ height: "100%", overflow: "auto", fontSize: 12 }}>
-            {ecg.map((e, i) => (
+      <Card title="ECG Interpretations">
+        {ecgData.length > 0 ? (
+          <div style={{ height: "100%", overflow: "auto", padding: 8 }}>
+            {ecgData.map((ecg, i) => (
               <div key={i} style={{
                 padding: 8,
-                marginBottom: 6,
-                background: e.findings?.some(f => f.includes("fibrillation") || f.includes("ST elevation") || f.includes("ischemic")) ? "#fee2e2" : "#f0fdf4",
+                marginBottom: 8,
+                background: ecg.findings.length > 0 ? "#fef3c7" : "#f0fdf4",
                 borderRadius: 6,
-                border: "1px solid #e5e7eb"
+                border: ecg.findings.length > 0 ? "1px solid #fde68a" : "1px solid #bbf7d0"
               }}>
-                <div style={{ fontWeight: 600, marginBottom: 4 }}>{e.rhythm || "Unknown rhythm"}</div>
-                <div style={{ color: "#64748b", fontSize: 11 }}>{e.t}</div>
-                {e.interpretation && <div style={{ marginTop: 4, color: "#475569" }}>{e.interpretation}</div>}
-                {e.findings && e.findings.length > 0 && (
-                  <div style={{ marginTop: 4, fontSize: 11 }}>
-                    {e.findings.map((f, j) => (
-                      <span key={j} style={{
-                        display: "inline-block",
-                        padding: "2px 6px",
-                        margin: "2px 4px 2px 0",
-                        background: f.includes("fibrillation") || f.includes("ST") ? "#fecaca" : "#fef3c7",
-                        borderRadius: 4,
-                        color: f.includes("fibrillation") || f.includes("ST") ? "#dc2626" : "#92400e"
-                      }}>
-                        {f}
-                      </span>
-                    ))}
+                <div style={{ fontSize: 10, color: "#64748b" }}>{ecg.t}</div>
+                <div style={{ fontWeight: 600, color: "#1e293b" }}>{ecg.rhythm}</div>
+                <div style={{ fontSize: 12, color: "#475569" }}>{ecg.interpretation}</div>
+                {ecg.findings.length > 0 && (
+                  <div style={{ marginTop: 4, fontSize: 11, color: "#d97706" }}>
+                    Findings: {ecg.findings.join(", ")}
                   </div>
                 )}
               </div>
             ))}
           </div>
         ) : (
-          <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#94a3b8" }}>
             No ECG data available
           </div>
         )}
