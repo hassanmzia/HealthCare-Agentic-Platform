@@ -6,6 +6,16 @@ from .views import (
     CarePlanListView, CarePlanDetailView,
     VitalsListView, VitalsDetailView,
     PatientClinicalSummaryView,
+    # AI Assessment Views
+    ClinicalAssessmentListView, ClinicalAssessmentDetailView,
+    # Physician Review Views
+    PhysicianReviewListView, PhysicianReviewSubmitView, PhysicianReviewDetailView,
+    # Audit Log Views
+    AssessmentAuditLogView,
+    # Document Generation Views
+    ClinicalDocumentListView, GenerateDocumentView, ClinicalDocumentDetailView,
+    # EHR Order Views
+    EHROrderListView, CreateEHROrdersView, EHROrderDetailView,
 )
 
 urlpatterns = [
@@ -32,4 +42,28 @@ urlpatterns = [
 
     # Patient Summary
     path("patient/<int:patient_id>/summary/", PatientClinicalSummaryView.as_view(), name="patient-summary"),
+
+    # ==========================================================================
+    # AI Clinical Assessment Endpoints
+    # ==========================================================================
+
+    # Assessments
+    path("assessments/", ClinicalAssessmentListView.as_view(), name="assessment-list"),
+    path("assessments/<uuid:assessment_id>/", ClinicalAssessmentDetailView.as_view(), name="assessment-detail"),
+    path("assessments/<uuid:assessment_id>/audit/", AssessmentAuditLogView.as_view(), name="assessment-audit"),
+
+    # Physician Reviews
+    path("reviews/", PhysicianReviewListView.as_view(), name="review-list"),
+    path("reviews/submit/", PhysicianReviewSubmitView.as_view(), name="review-submit"),
+    path("reviews/<uuid:review_id>/", PhysicianReviewDetailView.as_view(), name="review-detail"),
+
+    # Clinical Documents
+    path("documents/", ClinicalDocumentListView.as_view(), name="document-list"),
+    path("documents/generate/", GenerateDocumentView.as_view(), name="document-generate"),
+    path("documents/<uuid:document_id>/", ClinicalDocumentDetailView.as_view(), name="document-detail"),
+
+    # EHR Orders
+    path("orders/", EHROrderListView.as_view(), name="order-list"),
+    path("orders/create/", CreateEHROrdersView.as_view(), name="order-create"),
+    path("orders/<uuid:order_id>/", EHROrderDetailView.as_view(), name="order-detail"),
 ]

@@ -76,6 +76,40 @@ class DiagnosticianAgent(BaseAgent):
         findings = []
         warnings = []
 
+        # Step 0: Review chief complaint and physician notes
+        if context.chief_complaint:
+            reasoning_steps.append(f"Chief Complaint: {context.chief_complaint}")
+            findings.append(ClinicalFinding(
+                type="history",
+                name="Chief Complaint",
+                value=context.chief_complaint,
+                status="normal",  # Will be updated based on content
+                interpretation=f"Patient presents with: {context.chief_complaint}",
+                source="Clinical History"
+            ))
+
+        if context.physician_notes:
+            reasoning_steps.append(f"Physician Notes: {context.physician_notes[:200]}...")
+            findings.append(ClinicalFinding(
+                type="notes",
+                name="Physician Assessment",
+                value=context.physician_notes[:500] if len(context.physician_notes) > 500 else context.physician_notes,
+                status="normal",
+                interpretation="See physician notes for clinical assessment",
+                source="Physician Notes"
+            ))
+
+        if context.history_present_illness:
+            reasoning_steps.append(f"HPI reviewed: {context.history_present_illness[:100]}...")
+            findings.append(ClinicalFinding(
+                type="history",
+                name="History of Present Illness",
+                value=context.history_present_illness,
+                status="normal",
+                interpretation=context.history_present_illness,
+                source="Clinical History"
+            ))
+
         # Step 1: Analyze vitals
         reasoning_steps.append("Step 1: Analyzing vital signs...")
         vital_findings = self._analyze_vitals(context.vitals)
@@ -252,6 +286,83 @@ class DiagnosticianAgent(BaseAgent):
                 source="FHIR Observation"
             ))
 
+        # Blood Glucose
+        glucose = latest.get("2339-0", {}).get("value")
+        if glucose:
+            status = "normal"
+            interpretation = "Blood glucose within normal limits"
+            if glucose >= 400:
+                status = "critical"
+                interpretation = f"Severe hyperglycemia ({glucose} mg/dL) - risk of DKA/HHS"
+            elif glucose >= 250:
+                status = "abnormal"
+                interpretation = f"Hyperglycemia ({glucose} mg/dL) - adjust insulin/medications"
+            elif glucose >= 126:
+                status = "abnormal"
+                interpretation = f"Elevated fasting glucose ({glucose} mg/dL) - diabetic range"
+            elif glucose >= 100:
+                status = "abnormal"
+                interpretation = f"Impaired fasting glucose ({glucose} mg/dL) - pre-diabetic"
+            elif glucose < 70:
+                status = "critical"
+                interpretation = f"Hypoglycemia ({glucose} mg/dL) - treat immediately"
+            elif glucose < 54:
+                status = "critical"
+                interpretation = f"Severe hypoglycemia ({glucose} mg/dL) - emergency treatment needed"
+
+            findings.append(ClinicalFinding(
+                type="vital",
+                name="Blood Glucose",
+                value=glucose,
+                unit="mg/dL",
+                status=status,
+                interpretation=interpretation,
+                source="FHIR Observation"
+            ))
+
+        # ECG - Look for ECG interpretation observations
+        ecg = latest.get("8601-7", {})
+        if ecg:
+            # ECG has components with rhythm and findings
+            components = ecg.get("components", [])
+            rhythm = None
+            ecg_findings = []
+
+            for comp in components:
+                if not comp or not isinstance(comp, dict):
+                    continue
+                code = comp.get("code")
+                value = comp.get("value")
+                if code == "8884-9":  # Heart rhythm
+                    rhythm = value
+                elif code == "18844-1":  # ECG finding
+                    ecg_findings.append(value)
+
+            if rhythm or ecg_findings:
+                status = "normal"
+                interpretation = rhythm or "Normal sinus rhythm"
+
+                # Check for concerning findings
+                concerning_terms = ["fibrillation", "flutter", "ST elevation", "ST depression",
+                                   "MI", "ischemic", "block", "tachycardia", "bradycardia"]
+                for finding in ecg_findings:
+                    if any(term.lower() in finding.lower() for term in concerning_terms):
+                        status = "abnormal"
+                        break
+
+                if "fibrillation" in str(rhythm).lower() or "MI" in str(ecg_findings):
+                    status = "critical"
+
+                findings.append(ClinicalFinding(
+                    type="ecg",
+                    name="ECG Interpretation",
+                    value=rhythm or "See findings",
+                    unit="",
+                    status=status,
+                    interpretation=f"{interpretation}. Findings: {', '.join(ecg_findings) if ecg_findings else 'None'}",
+                    source="ECG Monitor"
+                ))
+
         return findings
 
     def _analyze_labs(self, labs: Optional[list]) -> List[ClinicalFinding]:
@@ -367,11 +478,24 @@ class DiagnosticianAgent(BaseAgent):
             return self._rule_based_differential(context, findings)
 
         # Build prompt
+        chief_complaint = context.chief_complaint or "Not documented"
+        hpi = context.history_present_illness or "Not documented"
+        physician_notes = context.physician_notes or "Not documented"
+
         prompt = f"""Analyze this patient data and provide a differential diagnosis.
 
 Patient Information:
 - Age: {context.age or 'Unknown'}
 - Sex: {context.sex or 'Unknown'}
+
+Chief Complaint:
+{chief_complaint}
+
+History of Present Illness:
+{hpi}
+
+Physician Notes/Assessment:
+{physician_notes}
 
 Clinical Findings:
 {self._format_findings(findings)}
@@ -384,6 +508,12 @@ Current Medications:
 
 Allergies:
 {', '.join([a.get('substance', '') for a in (context.allergies or []) if a and isinstance(a, dict)]) or 'NKDA'}
+
+Past Medical History:
+{', '.join(context.past_medical_history or []) or 'Not documented'}
+
+Family History:
+{', '.join(context.family_history or []) or 'Not documented'}
 
 Please provide:
 1. Primary diagnosis with ICD-10 code and confidence (0-1)
