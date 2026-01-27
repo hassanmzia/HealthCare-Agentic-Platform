@@ -141,6 +141,10 @@ export interface VitalsRecord {
   height?: number;
   bmi?: number;
   pain_level?: number;
+  glucose?: number;
+  ecg_rhythm?: string;
+  ecg_interpretation?: string;
+  ecg_findings?: string[];
   recorded_at: string;
   recorded_by?: string;
   method?: string;
