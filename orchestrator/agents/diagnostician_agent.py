@@ -474,7 +474,52 @@ class DiagnosticianAgent(BaseAgent):
                     "fever" in f.interpretation.lower()
                     for f in findings if f.name == "Temperature"
                 )
-            }
+            },
+            {
+                "name": "Atrial fibrillation, unspecified",
+                "icd10": "I48.91",
+                "triggers": ["ecg"],
+                "condition": lambda f: any(
+                    "fibrillation" in f.interpretation.lower()
+                    for f in findings if f.name == "ECG Interpretation"
+                )
+            },
+            {
+                "name": "Cardiac arrhythmia, unspecified",
+                "icd10": "I49.9",
+                "triggers": ["ecg"],
+                "condition": lambda f: any(
+                    f.status in ["abnormal", "critical"]
+                    for f in findings if f.name == "ECG Interpretation"
+                )
+            },
+            {
+                "name": "Hyperglycemia, unspecified",
+                "icd10": "R73.9",
+                "triggers": ["blood glucose"],
+                "condition": lambda f: any(
+                    "hyperglycemia" in f.interpretation.lower() or "diabetic" in f.interpretation.lower()
+                    for f in findings if f.name == "Blood Glucose"
+                )
+            },
+            {
+                "name": "Hypoglycemia, unspecified",
+                "icd10": "E16.2",
+                "triggers": ["blood glucose"],
+                "condition": lambda f: any(
+                    "hypoglycemia" in f.interpretation.lower()
+                    for f in findings if f.name == "Blood Glucose"
+                )
+            },
+            {
+                "name": "Tachypnea",
+                "icd10": "R06.82",
+                "triggers": ["respiratory rate"],
+                "condition": lambda f: any(
+                    "tachypnea" in f.interpretation.lower()
+                    for f in findings if f.name == "Respiratory Rate"
+                )
+            },
         ]
 
         for pattern in patterns:
