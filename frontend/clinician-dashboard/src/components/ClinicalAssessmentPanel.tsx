@@ -5,7 +5,7 @@ import {
   fetchLLMStatus,
   submitPhysicianReview,
   generateClinicalDocument,
-  getDocumentDownloadUrl,
+  downloadClinicalDocument,
   createEHROrders,
   type AssessmentResponse,
   type ClinicalAssessment,
@@ -694,10 +694,15 @@ function AssessmentResults({
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <h5 style={{ margin: 0 }}>Generated Document: {reviewState.generatedDocument.title}</h5>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <a
-                    href={getDocumentDownloadUrl(reviewState.generatedDocument.id, "pdf")}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={async () => {
+                      try {
+                        await downloadClinicalDocument(reviewState.generatedDocument!.id, reviewState.generatedDocument!.title, "pdf");
+                      } catch (err) {
+                        console.error("PDF download failed:", err);
+                        alert("Failed to download PDF. Please try again.");
+                      }
+                    }}
                     style={{
                       padding: "4px 10px",
                       background: "#dc2626",
@@ -706,16 +711,20 @@ function AssessmentResults({
                       borderRadius: 4,
                       fontSize: 11,
                       fontWeight: 600,
-                      textDecoration: "none",
                       cursor: "pointer",
                     }}
                   >
                     Download PDF
-                  </a>
-                  <a
-                    href={getDocumentDownloadUrl(reviewState.generatedDocument.id, "html")}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await downloadClinicalDocument(reviewState.generatedDocument!.id, reviewState.generatedDocument!.title, "html");
+                      } catch (err) {
+                        console.error("HTML download failed:", err);
+                        alert("Failed to download HTML. Please try again.");
+                      }
+                    }}
                     style={{
                       padding: "4px 10px",
                       background: "#2563eb",
@@ -724,12 +733,11 @@ function AssessmentResults({
                       borderRadius: 4,
                       fontSize: 11,
                       fontWeight: 600,
-                      textDecoration: "none",
                       cursor: "pointer",
                     }}
                   >
                     Download HTML
-                  </a>
+                  </button>
                   <span style={{
                     padding: "2px 8px",
                     background: reviewState.generatedDocument.status === "final" ? "#dcfce7" : "#fef3c7",
