@@ -48,7 +48,7 @@ class MCPFHIRServer(BaseMCPServer):
 
         @self.register_tool(
             name="get_vitals",
-            description="Get patient vital signs (heart rate, BP, SpO2, temp, etc.)",
+            description="Get patient vital signs including ECG and glucose (heart rate, BP, SpO2, temp, glucose, ECG, etc.)",
             input_schema={
                 "patient_id": "string",
                 "count": "integer (default 50)",
@@ -64,7 +64,6 @@ class MCPFHIRServer(BaseMCPServer):
 
             params = {
                 "subject:Patient": patient_id,
-                "category": "vital-signs",
                 "_count": str(count),
                 "_sort": "-date"
             }
@@ -81,9 +80,11 @@ class MCPFHIRServer(BaseMCPServer):
                 vitals = []
                 for entry in bundle.get("entry", []):
                     obs = entry.get("resource", {})
-                    vitals.append({
+                    loinc_code = obs.get("code", {}).get("coding", [{}])[0].get("code", "")
+
+                    vital_entry = {
                         "id": obs.get("id"),
-                        "code": obs.get("code", {}).get("coding", [{}])[0].get("code"),
+                        "code": loinc_code,
                         "display": obs.get("code", {}).get("coding", [{}])[0].get("display"),
                         "value": obs.get("valueQuantity", {}).get("value"),
                         "unit": obs.get("valueQuantity", {}).get("unit"),
@@ -91,12 +92,28 @@ class MCPFHIRServer(BaseMCPServer):
                         "components": [
                             {
                                 "code": c.get("code", {}).get("coding", [{}])[0].get("code"),
+                                "display": c.get("code", {}).get("coding", [{}])[0].get("display"),
                                 "value": c.get("valueQuantity", {}).get("value"),
-                                "unit": c.get("valueQuantity", {}).get("unit")
+                                "unit": c.get("valueQuantity", {}).get("unit"),
+                                "valueString": c.get("valueString"),
                             }
                             for c in obs.get("component", [])
                         ]
-                    })
+                    }
+
+                    # ECG observations use valueCodeableConcept instead of valueQuantity
+                    if loinc_code == "8601-7":
+                        concept = obs.get("valueCodeableConcept", {})
+                        vital_entry["ecg_rhythm"] = concept.get("coding", [{}])[0].get("display", "")
+                        vital_entry["ecg_interpretation"] = concept.get("text", "")
+                        vital_entry["ecg_findings"] = [
+                            c.get("valueString")
+                            for c in obs.get("component", [])
+                            if c.get("code", {}).get("coding", [{}])[0].get("code") == "18844-1"
+                            and c.get("valueString")
+                        ]
+
+                    vitals.append(vital_entry)
 
                 return {"patient_id": patient_id, "count": len(vitals), "vitals": vitals}
 
