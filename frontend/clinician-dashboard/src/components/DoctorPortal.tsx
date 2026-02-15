@@ -126,7 +126,7 @@ export function DoctorPortal() {
   });
 
   return (
-    <div style={{ padding: 16, display: "grid", gridTemplateColumns: "300px 1fr", gap: 16, minHeight: "calc(100vh - 150px)" }}>
+    <div className="doctor-portal-grid" style={{ padding: 16, display: "grid", gridTemplateColumns: "300px 1fr", gap: 16, minHeight: "calc(100vh - 150px)" }}>
       {/* Left Panel - Patient Search */}
       <div style={{ ...cardStyle, height: "fit-content", position: "sticky", top: 16 }}>
         <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 16 }}>Patient Search</h3>
@@ -186,17 +186,17 @@ export function DoctorPortal() {
           <>
             {/* Patient Header */}
             <div style={{ ...cardStyle, background: "#f8fafc" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div className="patient-header-layout" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div>
                   <h2 style={{ margin: 0 }}>{selectedPatient.first_name} {selectedPatient.last_name}</h2>
-                  <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 14, color: "#666" }}>
+                  <div className="patient-meta-row" style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 14, color: "#666" }}>
                     <span>MRN: <strong>{selectedPatient.mrn}</strong></span>
                     <span>DOB: <strong>{selectedPatient.date_of_birth}</strong></span>
                     <span>Age: <strong>{summaryQuery.data?.age || "—"}</strong></span>
                     <span>Gender: <strong>{selectedPatient.gender}</strong></span>
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
+                <div className="patient-header-actions" style={{ display: "flex", gap: 8 }}>
                   <button
                     onClick={() => setShowNewEncounter(true)}
                     style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#059669", color: "white", cursor: "pointer" }}
@@ -214,7 +214,7 @@ export function DoctorPortal() {
 
               {/* Allergies & Medications Banner */}
               {(summaryQuery.data?.allergies?.length || summaryQuery.data?.medications?.length) && (
-                <div style={{ display: "flex", gap: 16, marginTop: 12 }}>
+                <div className="allergies-meds-row" style={{ display: "flex", gap: 16, marginTop: 12 }}>
                   {summaryQuery.data?.allergies?.length ? (
                     <div style={{ padding: "6px 12px", background: "#fee2e2", borderRadius: 6, fontSize: 13 }}>
                       <strong style={{ color: "#dc2626" }}>Allergies:</strong>{" "}
@@ -232,7 +232,7 @@ export function DoctorPortal() {
             </div>
 
             {/* Tabs */}
-            <div style={{ borderBottom: "1px solid #eee", marginBottom: 16 }}>
+            <div className="tabs-container" style={{ borderBottom: "1px solid #eee", marginBottom: 16 }}>
               <button style={tabStyle(activeTab === "overview")} onClick={() => setActiveTab("overview")}>Overview</button>
               <button style={tabStyle(activeTab === "notes")} onClick={() => setActiveTab("notes")}>Clinical Notes</button>
               <button style={tabStyle(activeTab === "encounters")} onClick={() => setActiveTab("encounters")}>Encounters</button>
@@ -348,7 +348,7 @@ function PatientOverview({ summary, fhirVitals }: { summary: PatientClinicalSumm
   const hasVitals = vitals && (vitals.heart_rate || vitals.blood_pressure || vitals.oxygen_saturation || vitals.temperature || vitals.respiratory_rate || vitals.glucose || vitals.ecg_rhythm);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+    <div className="patient-overview-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
       {/* Latest Vitals */}
       <div style={cardStyle}>
         <h4 style={{ marginTop: 0, marginBottom: 12 }}>
@@ -356,7 +356,7 @@ function PatientOverview({ summary, fhirVitals }: { summary: PatientClinicalSumm
           {fhirVitals && <span style={{ fontSize: 11, color: "#2563eb", marginLeft: 8 }}>(from FHIR)</span>}
         </h4>
         {hasVitals ? (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="vitals-inner-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {vitals.heart_rate && (
               <VitalItem label="Heart Rate" value={`${vitals.heart_rate} bpm`} />
             )}
@@ -491,7 +491,7 @@ function PatientOverview({ summary, fhirVitals }: { summary: PatientClinicalSumm
       <div style={{ ...cardStyle, gridColumn: "1 / -1" }}>
         <h4 style={{ marginTop: 0, marginBottom: 12 }}>Active Care Plans</h4>
         {summary.active_care_plans.length > 0 ? (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="care-plans-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {summary.active_care_plans.map((plan) => (
               <div key={plan.id} style={{ padding: 12, background: "#f0fdf4", borderRadius: 8, border: "1px solid #bbf7d0" }}>
                 <div style={{ fontWeight: 500 }}>{plan.title}</div>
@@ -662,7 +662,7 @@ function EncountersTab({ encounters, isLoading }: { encounters: Encounter[]; isL
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 16, marginTop: 12, fontSize: 13, color: "#666" }}>
+          <div className="encounter-details-row" style={{ display: "flex", gap: 16, marginTop: 12, fontSize: 13, color: "#666" }}>
             {enc.attending_physician && <span>Physician: {enc.attending_physician}</span>}
             {enc.facility && <span>Facility: {enc.facility}</span>}
             {enc.department && <span>Department: {enc.department}</span>}
@@ -698,12 +698,12 @@ function NewEncounterModal({ patientId, onClose, onSuccess }: { patientId: numbe
   const inputStyle = { width: "100%", padding: "8px 12px", borderRadius: 6, border: "1px solid #ddd", fontSize: 14 };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }}>
-      <div style={{ background: "white", borderRadius: 12, width: "100%", maxWidth: 500, padding: 24 }}>
+    <div className="modal-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }}>
+      <div className="modal-content" style={{ background: "white", borderRadius: 12, width: "100%", maxWidth: 500, padding: 24 }}>
         <h3 style={{ marginTop: 0 }}>Start New Encounter</h3>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="form-grid-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div>
               <label style={{ display: "block", marginBottom: 4, fontSize: 13, fontWeight: 500 }}>Type</label>
               <select value={formData.encounter_type} onChange={(e) => setFormData({ ...formData, encounter_type: e.target.value })} style={inputStyle}>
@@ -725,7 +725,7 @@ function NewEncounterModal({ patientId, onClose, onSuccess }: { patientId: numbe
             <input value={formData.attending_physician} onChange={(e) => setFormData({ ...formData, attending_physician: e.target.value })} placeholder="Dr. Smith" style={inputStyle} />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="form-grid-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div>
               <label style={{ display: "block", marginBottom: 4, fontSize: 13, fontWeight: 500 }}>Facility</label>
               <input value={formData.facility} onChange={(e) => setFormData({ ...formData, facility: e.target.value })} style={inputStyle} />
@@ -801,12 +801,12 @@ function NewNoteModal({ patientId, encounters, onClose, onSuccess }: { patientId
   const isSOAP = formData.note_type === "soap";
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: 40, overflow: "auto", zIndex: 1000 }}>
-      <div style={{ background: "white", borderRadius: 12, width: "100%", maxWidth: 700, padding: 24 }}>
+    <div className="modal-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: 40, overflow: "auto", zIndex: 1000 }}>
+      <div className="modal-content" style={{ background: "white", borderRadius: 12, width: "100%", maxWidth: 700, padding: 24 }}>
         <h3 style={{ marginTop: 0 }}>Create Clinical Note</h3>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="form-grid-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div>
               <label style={{ display: "block", marginBottom: 4, fontSize: 13, fontWeight: 500 }}>Note Type</label>
               <select value={formData.note_type} onChange={(e) => setFormData({ ...formData, note_type: e.target.value })} style={inputStyle}>
@@ -831,7 +831,7 @@ function NewNoteModal({ patientId, encounters, onClose, onSuccess }: { patientId
             <input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Note title..." style={inputStyle} />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="form-grid-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div>
               <label style={{ display: "block", marginBottom: 4, fontSize: 13, fontWeight: 500 }}>Author *</label>
               <input value={formData.author} onChange={(e) => setFormData({ ...formData, author: e.target.value })} placeholder="Dr. Smith" required style={inputStyle} />

@@ -49,7 +49,7 @@ export function LoginPage({ onLoginSuccess, onRegister }: LoginPageProps) {
       background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
       fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
     }}>
-      <div style={{
+      <div className="login-card" style={{
         background: "white",
         borderRadius: 16,
         padding: 40,

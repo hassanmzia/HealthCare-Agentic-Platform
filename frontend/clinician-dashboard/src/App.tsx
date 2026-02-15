@@ -110,7 +110,7 @@ function VitalsDashboard() {
       </div>
 
       {/* Controls Bar */}
-      <div style={{
+      <div className="controls-bar" style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -198,7 +198,7 @@ function VitalsDashboard() {
       )}
 
       {/* Stats Overview */}
-      <div style={{
+      <div className="stat-grid" style={{
         display: "grid",
         gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
         gap: 16,
@@ -412,6 +412,7 @@ function AuthenticatedApp() {
   const { user, permissions, logout, isLoading } = useAuth();
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -451,17 +452,25 @@ function AuthenticatedApp() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#f3f4f6" }}>
+      {/* Mobile sidebar overlay */}
+      <div
+        className={`mobile-sidebar-overlay${mobileSidebarOpen ? " active" : ""}`}
+        onClick={() => setMobileSidebarOpen(false)}
+      />
       {/* Sidebar */}
-      <aside style={{
-        width: sidebarCollapsed ? 72 : 260,
-        background: "linear-gradient(180deg, #1e293b 0%, #0f172a 100%)",
-        display: "flex",
-        flexDirection: "column",
-        transition: "width 0.3s ease",
-        position: "fixed",
-        height: "100vh",
-        zIndex: 100,
-      }}>
+      <aside
+        className={`app-sidebar${mobileSidebarOpen ? " open" : ""}`}
+        style={{
+          width: sidebarCollapsed ? 72 : 260,
+          background: "linear-gradient(180deg, #1e293b 0%, #0f172a 100%)",
+          display: "flex",
+          flexDirection: "column",
+          transition: "width 0.3s ease, transform 0.3s ease",
+          position: "fixed",
+          height: "100vh",
+          zIndex: 200,
+        }}
+      >
         {/* Logo */}
         <div style={{
           padding: sidebarCollapsed ? "20px 16px" : "20px 24px",
@@ -496,7 +505,7 @@ function AuthenticatedApp() {
           {filteredNavItems.map((item) => (
             <button
               key={item.key}
-              onClick={() => setCurrentView(item.key)}
+              onClick={() => { setCurrentView(item.key); setMobileSidebarOpen(false); }}
               title={sidebarCollapsed ? item.label : undefined}
               style={{
                 width: "100%",
@@ -595,6 +604,7 @@ function AuthenticatedApp() {
 
         {/* Collapse Toggle */}
         <button
+          className="sidebar-collapse-btn"
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           style={{
             position: "absolute",
@@ -620,58 +630,80 @@ function AuthenticatedApp() {
       </aside>
 
       {/* Main Content */}
-      <main style={{
-        flex: 1,
-        marginLeft: sidebarCollapsed ? 72 : 260,
-        transition: "margin-left 0.3s ease",
-        minHeight: "100vh",
-      }}>
+      <main
+        className="app-main"
+        style={{
+          flex: 1,
+          marginLeft: sidebarCollapsed ? 72 : 260,
+          transition: "margin-left 0.3s ease",
+          minHeight: "100vh",
+        }}
+      >
         {/* Top Header */}
-        <header style={{
-          background: "white",
-          borderBottom: "1px solid #e5e7eb",
-          padding: "16px 32px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
-        }}>
-          <div>
+        <header
+          className="app-header"
+          style={{
+            background: "white",
+            borderBottom: "1px solid #e5e7eb",
+            padding: "16px 32px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            position: "sticky",
+            top: 0,
+            zIndex: 50,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {/* Mobile hamburger menu */}
+            <button
+              className="mobile-menu-btn"
+              onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+              aria-label="Toggle menu"
+            >
+              <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
             <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: "#111827" }}>
               {filteredNavItems.find(n => n.key === currentView)?.label || "Dashboard"}
             </h1>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ textAlign: "right" }}>
+            <div className="header-user-info" style={{ textAlign: "right" }}>
               <div style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>{user?.display_name}</div>
               <div style={{ fontSize: 11, color: "#6b7280" }}>
                 {user?.department || user?.role}
               </div>
             </div>
-            <div style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-              fontWeight: 600,
-            }}>
+            <div
+              className="header-avatar"
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "white",
+                fontWeight: 600,
+              }}
+            >
               {user?.display_name?.charAt(0).toUpperCase() || "U"}
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <div style={{
-          padding: 32,
-          maxWidth: 1600,
-          margin: "0 auto",
-        }}>
+        <div
+          className="app-content"
+          style={{
+            padding: 32,
+            maxWidth: 1600,
+            margin: "0 auto",
+          }}
+        >
           {currentView === "dashboard" && <VitalsDashboard />}
           {currentView === "patients" && <PatientManagement />}
           {currentView === "devices" && <DeviceManagement />}

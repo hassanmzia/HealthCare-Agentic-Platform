@@ -122,7 +122,7 @@ export function PatientList({ onSelectPatient, onCreateNew, onImport }: PatientL
             Showing {data.results.length} of {data.total} patients
           </div>
 
-          <div style={{ border: "1px solid #eee", borderRadius: 12, overflow: "hidden" }}>
+          <div className="table-responsive" style={{ border: "1px solid #eee", borderRadius: 12, overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "#f9f9f9" }}>
