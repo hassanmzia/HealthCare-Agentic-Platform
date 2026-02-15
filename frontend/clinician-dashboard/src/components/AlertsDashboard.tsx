@@ -489,7 +489,7 @@ function AlertHistoryTab({ alerts, isLoading }: { alerts: Alert[]; isLoading: bo
   if (isLoading) return <div style={{ padding: 40, textAlign: "center", color: "#666" }}>Loading...</div>;
 
   return (
-    <div style={{ border: "1px solid #eee", borderRadius: 12, overflow: "hidden" }}>
+    <div className="table-responsive" style={{ border: "1px solid #eee", borderRadius: 12, overflow: "hidden" }}>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ background: "#f9fafb" }}>

@@ -89,7 +89,7 @@ export function RegisterPage({ onRegisterSuccess, onBackToLogin }: RegisterPageP
       background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
       fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
     }}>
-      <div style={{
+      <div className="login-card" style={{
         background: "white",
         borderRadius: 16,
         padding: 40,
@@ -134,7 +134,7 @@ export function RegisterPage({ onRegisterSuccess, onBackToLogin }: RegisterPageP
           )}
 
           {/* Name fields */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+          <div className="form-grid-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
             <div>
               <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: "#374151" }}>
                 First Name *
