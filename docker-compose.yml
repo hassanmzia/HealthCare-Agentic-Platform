@@ -239,7 +239,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3030:443"
-      - "80:80"
     volumes:
       - ./ssl:/etc/nginx/ssl:ro
     depends_on:
