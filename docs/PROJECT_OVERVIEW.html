@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthCare Agentic Platform — Project Overview</title>
+    <style>
+        @page { size: A4; margin: 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            width: 210mm; min-height: 297mm; margin: 0 auto;
+            background: #ffffff; color: #1a1a2e; font-size: 9pt;
+            line-height: 1.4;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #0077B6 0%, #023E8A 50%, #03045E 100%);
+            color: white; padding: 20px 30px; text-align: center;
+        }
+        .header h1 { font-size: 22pt; font-weight: 700; margin-bottom: 4px; letter-spacing: 0.5px; }
+        .header .subtitle { font-size: 11pt; opacity: 0.9; font-weight: 300; }
+        .header .badges { margin-top: 8px; display: flex; justify-content: center; gap: 10px; }
+        .header .badge {
+            background: rgba(255,255,255,0.2); padding: 3px 12px; border-radius: 12px;
+            font-size: 7.5pt; font-weight: 600; letter-spacing: 0.3px;
+        }
+
+        /* Content */
+        .content { padding: 15px 25px; }
+
+        /* Two Column Layout */
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 12px; }
+        .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+
+        /* Section */
+        .section { margin-bottom: 12px; }
+        .section-title {
+            font-size: 11pt; font-weight: 700; color: #0077B6;
+            border-bottom: 2px solid #0077B6; padding-bottom: 3px; margin-bottom: 8px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+
+        /* Cards */
+        .card {
+            border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px;
+            background: #fafbfc; border-left: 3px solid #0077B6;
+        }
+        .card h3 { font-size: 9pt; color: #023E8A; margin-bottom: 4px; }
+        .card p { font-size: 8pt; color: #444; }
+        .card.green { border-left-color: #2d6a4f; }
+        .card.orange { border-left-color: #e76f51; }
+        .card.purple { border-left-color: #7b2cbf; }
+        .card.gold { border-left-color: #d4a017; }
+
+        /* Agent Grid */
+        .agent-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 6px; }
+        .agent-box {
+            background: linear-gradient(135deg, #fff2cc, #fff9e6);
+            border: 1px solid #d4a017; border-radius: 5px;
+            padding: 6px; text-align: center; font-size: 7.5pt;
+        }
+        .agent-box strong { display: block; font-size: 8pt; color: #023E8A; }
+
+        /* Tech Stack Table */
+        .tech-table { width: 100%; border-collapse: collapse; font-size: 8pt; }
+        .tech-table th {
+            background: #0077B6; color: white; padding: 5px 8px;
+            text-align: left; font-size: 8pt;
+        }
+        .tech-table td { padding: 4px 8px; border-bottom: 1px solid #eee; }
+        .tech-table tr:nth-child(even) { background: #f8f9fa; }
+
+        /* Architecture Flow */
+        .flow {
+            display: flex; align-items: center; justify-content: center;
+            gap: 0; margin: 10px 0; flex-wrap: nowrap;
+        }
+        .flow-step {
+            background: #f0f4ff; border: 1px solid #0077B6; border-radius: 6px;
+            padding: 8px 10px; text-align: center; font-size: 7.5pt; flex: 1;
+        }
+        .flow-step strong { display: block; font-size: 8.5pt; color: #023E8A; }
+        .flow-arrow { font-size: 14pt; color: #0077B6; padding: 0 3px; font-weight: bold; }
+
+        /* Stats */
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 8px 0; }
+        .stat-box {
+            text-align: center; background: linear-gradient(135deg, #e8f4f8, #d0ebf5);
+            border-radius: 6px; padding: 8px;
+        }
+        .stat-box .number { font-size: 16pt; font-weight: 800; color: #023E8A; }
+        .stat-box .label { font-size: 7pt; color: #555; text-transform: uppercase; letter-spacing: 0.3px; }
+
+        /* Services */
+        .service-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+        .service {
+            background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px;
+            padding: 4px 6px; font-size: 7pt; text-align: center;
+        }
+        .service strong { color: #023E8A; font-size: 7.5pt; }
+        .service .port { color: #888; font-size: 6.5pt; }
+
+        /* Footer */
+        .footer {
+            background: #03045E; color: white; padding: 10px 25px;
+            text-align: center; font-size: 7.5pt;
+            position: relative; bottom: 0;
+        }
+        .footer a { color: #90e0ef; text-decoration: none; }
+
+        /* Key Features List */
+        .features-list { list-style: none; padding: 0; }
+        .features-list li {
+            padding: 3px 0 3px 16px; font-size: 8pt; position: relative;
+        }
+        .features-list li::before {
+            content: "\2713"; position: absolute; left: 0; color: #2d6a4f; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>HealthCare Agentic Platform</h1>
+        <div class="subtitle">AI-Powered Multi-Agent Clinical Decision Support System</div>
+        <div class="badges">
+            <span class="badge">FHIR R4</span>
+            <span class="badge">HIPAA Ready</span>
+            <span class="badge">Multi-Agent AI</span>
+            <span class="badge">Physician-in-the-Loop</span>
+            <span class="badge">14 Microservices</span>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <!-- Overview + Stats -->
+        <div class="section">
+            <div class="section-title">Platform Overview</div>
+            <p style="font-size: 8.5pt; margin-bottom: 8px;">
+                A production-ready clinical decision support system that orchestrates <strong>7+ specialized AI agents</strong>
+                to deliver comprehensive diagnostic and treatment recommendations. Built on FHIR R4 standards with
+                full physician review workflows, audit compliance, and real-time IoT monitoring.
+            </p>
+            <div class="stats">
+                <div class="stat-box"><div class="number">7+</div><div class="label">AI Specialist Agents</div></div>
+                <div class="stat-box"><div class="number">14</div><div class="label">Microservices</div></div>
+                <div class="stat-box"><div class="number">6</div><div class="label">User Roles (RBAC)</div></div>
+                <div class="stat-box"><div class="number">5</div><div class="label">MCP Tool Servers</div></div>
+            </div>
+        </div>
+
+        <!-- Clinical Data Flow -->
+        <div class="section">
+            <div class="section-title">Clinical Assessment Workflow</div>
+            <div class="flow">
+                <div class="flow-step"><strong>1. Data Ingestion</strong>IoT vitals, labs,<br/>patient history</div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step"><strong>2. AI Analysis</strong>Multi-agent<br/>orchestration</div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step"><strong>3. Assessment</strong>Diagnoses, treatments,<br/>safety checks</div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step"><strong>4. Physician Review</strong>Approve, modify,<br/>or reject</div>
+                <div class="flow-arrow">&rarr;</div>
+                <div class="flow-step"><strong>5. Clinical Orders</strong>EHR integration,<br/>FHIR writeback</div>
+            </div>
+        </div>
+
+        <!-- AI Agents -->
+        <div class="section">
+            <div class="section-title">AI Agent Specializations</div>
+            <div class="agent-grid">
+                <div class="agent-box"><strong>Diagnostician</strong>Differential Dx<br/>Confidence Scoring</div>
+                <div class="agent-box"><strong>Treatment</strong>Care Plans<br/>Dosing Guidance</div>
+                <div class="agent-box"><strong>Safety</strong>Drug Interactions<br/>Allergy Checks</div>
+                <div class="agent-box"><strong>Medical Coding</strong>ICD-10 Codes<br/>CPT Codes</div>
+                <div class="agent-box"><strong>Cardiology</strong>ECG Analysis<br/>Cardiac Risk</div>
+                <div class="agent-box"><strong>Radiology</strong>Imaging Review<br/>Finding Reports</div>
+                <div class="agent-box"><strong>Pathology</strong>Lab Interpretation<br/>Result Trending</div>
+                <div class="agent-box"><strong>Oncology</strong>Tumor Markers<br/>Cancer Screening</div>
+                <div class="agent-box"><strong>Gastroenterology</strong>GI Procedures<br/>GI Analysis</div>
+                <div class="agent-box"><strong>Supervisor</strong>Orchestration<br/>Agent Coordination</div>
+            </div>
+        </div>
+
+        <!-- Two Column: Features + Tech -->
+        <div class="two-col">
+            <!-- Key Features -->
+            <div>
+                <div class="section-title">Key Features</div>
+                <div class="card" style="margin-bottom: 6px;">
+                    <h3>Clinical Intelligence</h3>
+                    <ul class="features-list">
+                        <li>Multi-agent differential diagnosis with confidence scoring</li>
+                        <li>Evidence-based treatment plans with dosing guidance</li>
+                        <li>Real-time drug interaction and allergy validation</li>
+                        <li>Automated ICD-10 and CPT code assignment</li>
+                        <li>Clinical guidelines RAG from vector database</li>
+                    </ul>
+                </div>
+                <div class="card green" style="margin-bottom: 6px;">
+                    <h3>Healthcare Interoperability</h3>
+                    <ul class="features-list">
+                        <li>FHIR R4 compliant (HAPI FHIR server)</li>
+                        <li>Bidirectional EHR integration</li>
+                        <li>Model Context Protocol (MCP) tool servers</li>
+                    </ul>
+                </div>
+                <div class="card purple">
+                    <h3>Security & Compliance</h3>
+                    <ul class="features-list">
+                        <li>HIPAA-ready architecture with audit trails</li>
+                        <li>JWT authentication + role-based access (6 roles)</li>
+                        <li>Digital physician signatures and attestation</li>
+                        <li>SSL/TLS encryption for all communications</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Technology Stack -->
+            <div>
+                <div class="section-title">Technology Stack</div>
+                <table class="tech-table">
+                    <tr><th>Layer</th><th>Technologies</th></tr>
+                    <tr><td><strong>Frontend</strong></td><td>React 19, TypeScript 5.9, Vite 7, Recharts, TanStack Query</td></tr>
+                    <tr><td><strong>Backend</strong></td><td>Django 5.0, DRF, Celery, PostgreSQL 16, Redis</td></tr>
+                    <tr><td><strong>AI / ML</strong></td><td>Claude (Anthropic), Ollama, LangGraph, ChromaDB</td></tr>
+                    <tr><td><strong>Interop</strong></td><td>HAPI FHIR R4, Model Context Protocol (MCP)</td></tr>
+                    <tr><td><strong>Infra</strong></td><td>Docker Compose, FastAPI, Nginx, SSL/TLS</td></tr>
+                </table>
+
+                <div style="margin-top: 10px;">
+                    <div class="section-title">Service Ports</div>
+                    <div class="service-grid">
+                        <div class="service"><strong>Dashboard</strong><br/><span class="port">:3030 HTTPS</span></div>
+                        <div class="service"><strong>Backend</strong><br/><span class="port">:8000</span></div>
+                        <div class="service"><strong>Orchestrator</strong><br/><span class="port">:8003</span></div>
+                        <div class="service"><strong>IoT Sim</strong><br/><span class="port">:8004</span></div>
+                        <div class="service"><strong>MCP FHIR</strong><br/><span class="port">:8005</span></div>
+                        <div class="service"><strong>MCP Labs</strong><br/><span class="port">:8006</span></div>
+                        <div class="service"><strong>MCP RAG</strong><br/><span class="port">:8007</span></div>
+                        <div class="service"><strong>MCP Pharma</strong><br/><span class="port">:8008</span></div>
+                        <div class="service"><strong>ChromaDB</strong><br/><span class="port">:8009</span></div>
+                        <div class="service"><strong>FHIR Adapter</strong><br/><span class="port">:8002</span></div>
+                        <div class="service"><strong>HAPI FHIR</strong><br/><span class="port">:18090</span></div>
+                        <div class="service"><strong>PostgreSQL</strong><br/><span class="port">:5432</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Start -->
+        <div class="section">
+            <div class="section-title">Quick Start</div>
+            <div class="two-col">
+                <div class="card gold">
+                    <h3>Launch the Platform</h3>
+                    <p style="font-family: 'Courier New', monospace; background: #1a1a2e; color: #90e0ef; padding: 6px 8px; border-radius: 4px; margin-top: 4px; font-size: 7.5pt;">
+                        $ git clone https://github.com/hassanmzia/HealthCare-Agentic-Platform.git<br/>
+                        $ cd HealthCare-Agentic-Platform<br/>
+                        $ docker-compose up -d<br/>
+                        <span style="color: #aaa;"># Access dashboard at https://localhost:3030</span>
+                    </p>
+                </div>
+                <div class="card orange">
+                    <h3>Prerequisites</h3>
+                    <ul class="features-list">
+                        <li>Docker & Docker Compose v2.0+</li>
+                        <li>Anthropic API Key (for Claude AI)</li>
+                        <li>8 GB RAM minimum recommended</li>
+                        <li>Ports: 3030, 8000, 8002-8009, 18090</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <strong>HealthCare Agentic Platform</strong> &mdash; AI-Powered Clinical Intelligence, Physician-Approved Care<br/>
+        <a href="https://github.com/hassanmzia/HealthCare-Agentic-Platform">github.com/hassanmzia/HealthCare-Agentic-Platform</a>
+        &nbsp;&bull;&nbsp; Built with Django, React, LangGraph, Claude AI & FHIR R4
+    </div>
+
+</body>
+</html>

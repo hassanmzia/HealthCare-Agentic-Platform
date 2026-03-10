@@ -1,0 +1,420 @@
+<mxfile host="app.diagrams.net" modified="2025-03-10T00:00:00.000Z" agent="draw.io" version="24.0.0" type="device">
+  <diagram id="healthcare-architecture" name="System Architecture">
+    <mxGraphModel dx="1800" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="1">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="title" value="&lt;b&gt;HealthCare Agentic Platform — System Architecture&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;fontSize=22;fontColor=#0077B6;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="600" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Frontend Layer -->
+        <mxCell id="frontend-group" value="&lt;b&gt;PRESENTATION LAYER&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontStyle=1;fontSize=13;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="200" y="80" width="1000" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe1" value="&lt;b&gt;Doctor Portal&lt;/b&gt;&lt;br&gt;Assessment Review" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="220" y="115" width="130" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe2" value="&lt;b&gt;Patient List&lt;/b&gt;&lt;br&gt;Demographics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="370" y="115" width="130" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe3" value="&lt;b&gt;Vitals Charts&lt;/b&gt;&lt;br&gt;Real-time Monitoring" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="520" y="115" width="130" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe4" value="&lt;b&gt;Labs Dashboard&lt;/b&gt;&lt;br&gt;Results &amp; Trends" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="670" y="115" width="130" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe5" value="&lt;b&gt;Alerts &amp; Analytics&lt;/b&gt;&lt;br&gt;Clinical Insights" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="115" width="130" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe6" value="&lt;b&gt;Medications&lt;/b&gt;&lt;br&gt;Rx Management" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="970" y="115" width="130" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe-label" value="React 19 + TypeScript 5.9 + Vite | Port 3030 (HTTPS)" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="500" y="175" width="350" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow: Frontend to Backend -->
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#0077B6;strokeWidth=2;fontSize=11;" edge="1" parent="1" source="frontend-group" target="backend-group">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow1-label" value="REST API + JWT Auth" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#0077B6;" vertex="1" connectable="0" parent="arrow1">
+          <mxGeometry x="-0.1" relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Backend Layer -->
+        <mxCell id="backend-group" value="&lt;b&gt;APPLICATION LAYER&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;fontStyle=1;fontSize=13;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="200" y="250" width="1000" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="be1" value="&lt;b&gt;Patients API&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="220" y="280" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="be2" value="&lt;b&gt;Clinical API&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="280" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="be3" value="&lt;b&gt;Vitals API&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="460" y="280" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="be4" value="&lt;b&gt;Labs API&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="280" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="be5" value="&lt;b&gt;Medications&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="280" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="be6" value="&lt;b&gt;Alerts&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="280" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="be7" value="&lt;b&gt;Analytics&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="940" y="280" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="be8" value="&lt;b&gt;Celery Workers&lt;/b&gt;&lt;br&gt;Async Processing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="280" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="be-label" value="Django 5.0 + DRF | Port 8000" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="530" y="340" width="250" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Data Layer -->
+        <mxCell id="db-group" value="&lt;b&gt;DATA LAYER&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;verticalAlign=top;fontStyle=1;fontSize=13;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="20" y="280" width="160" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="db1" value="&lt;b&gt;PostgreSQL 16&lt;/b&gt;&lt;br&gt;+ pgvector&lt;br&gt;Port 5432" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#FFFFFF;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="310" width="120" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="db2" value="&lt;b&gt;Redis&lt;/b&gt;&lt;br&gt;Port 6379" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#FFFFFF;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="395" width="120" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow: Backend to DB -->
+        <mxCell id="arrow-be-db" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="backend-group" target="db-group">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- AI Orchestrator Layer -->
+        <mxCell id="orch-group" value="&lt;b&gt;AI ORCHESTRATION LAYER&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=13;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="200" y="430" width="1000" height="250" as="geometry"/>
+        </mxCell>
+
+        <!-- Supervisor -->
+        <mxCell id="supervisor" value="&lt;b&gt;SUPERVISOR AGENT&lt;/b&gt;&lt;br&gt;Orchestrates all specialists" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="460" width="250" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Specialist Agents Row 1 -->
+        <mxCell id="agent1" value="&lt;b&gt;Diagnostician&lt;/b&gt;&lt;br&gt;Differential Dx" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="220" y="530" width="120" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="agent2" value="&lt;b&gt;Treatment&lt;/b&gt;&lt;br&gt;Care Plans" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="360" y="530" width="120" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="agent3" value="&lt;b&gt;Safety&lt;/b&gt;&lt;br&gt;Drug Interactions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="500" y="530" width="120" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="agent4" value="&lt;b&gt;Coding&lt;/b&gt;&lt;br&gt;ICD-10 / CPT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="640" y="530" width="120" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="agent5" value="&lt;b&gt;Cardiology&lt;/b&gt;&lt;br&gt;Cardiac Analysis" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="780" y="530" width="120" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Specialist Agents Row 2 -->
+        <mxCell id="agent6" value="&lt;b&gt;Radiology&lt;/b&gt;&lt;br&gt;Imaging Analysis" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="600" width="120" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="agent7" value="&lt;b&gt;Pathology&lt;/b&gt;&lt;br&gt;Lab Interpretation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="450" y="600" width="120" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="agent8" value="&lt;b&gt;Oncology&lt;/b&gt;&lt;br&gt;Cancer Detection" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="600" y="600" width="120" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="agent9" value="&lt;b&gt;Gastroenterology&lt;/b&gt;&lt;br&gt;GI Analysis" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="750" y="600" width="130" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrows from Supervisor to Agents -->
+        <mxCell id="sa1" style="strokeColor=#d6b656;strokeWidth=1;dashed=1;" edge="1" parent="1" source="supervisor" target="agent1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="sa2" style="strokeColor=#d6b656;strokeWidth=1;dashed=1;" edge="1" parent="1" source="supervisor" target="agent2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="sa3" style="strokeColor=#d6b656;strokeWidth=1;dashed=1;" edge="1" parent="1" source="supervisor" target="agent3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="sa4" style="strokeColor=#d6b656;strokeWidth=1;dashed=1;" edge="1" parent="1" source="supervisor" target="agent4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="sa5" style="strokeColor=#d6b656;strokeWidth=1;dashed=1;" edge="1" parent="1" source="supervisor" target="agent5"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="orch-label" value="FastAPI + LangGraph + Claude/Ollama | Port 8003" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="480" y="655" width="330" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow: Backend to Orchestrator -->
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#0077B6;strokeWidth=2;" edge="1" parent="1" source="backend-group" target="orch-group">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow2-label" value="Assessment Request" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#0077B6;" vertex="1" connectable="0" parent="arrow2">
+          <mxGeometry x="-0.1" relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- MCP Layer -->
+        <mxCell id="mcp-group" value="&lt;b&gt;MCP TOOL SERVERS&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=13;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="200" y="730" width="1000" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="mcp1" value="&lt;b&gt;FHIR Server&lt;/b&gt;&lt;br&gt;Port 8005" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="220" y="765" width="120" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="mcp2" value="&lt;b&gt;Labs Server&lt;/b&gt;&lt;br&gt;Port 8006" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="370" y="765" width="120" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="mcp3" value="&lt;b&gt;RAG Server&lt;/b&gt;&lt;br&gt;Port 8007" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="765" width="120" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="mcp4" value="&lt;b&gt;Pharmacy Server&lt;/b&gt;&lt;br&gt;Port 8008" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="670" y="765" width="120" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="mcp5" value="&lt;b&gt;FHIR Adapter&lt;/b&gt;&lt;br&gt;Port 8002" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="820" y="765" width="120" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="mcp6" value="&lt;b&gt;ChromaDB&lt;/b&gt;&lt;br&gt;Port 8009" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="970" y="760" width="100" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow: Orchestrator to MCP -->
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;strokeWidth=2;" edge="1" parent="1" source="orch-group" target="mcp-group">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow3-label" value="Model Context Protocol" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" connectable="0" parent="arrow3">
+          <mxGeometry x="-0.1" relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- FHIR Server -->
+        <mxCell id="fhir" value="&lt;b&gt;HAPI FHIR R4 Server&lt;/b&gt;&lt;br&gt;Port 18090&lt;br&gt;Patient | Observation | Condition | MedicationRequest" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="350" y="910" width="500" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow: MCP to FHIR -->
+        <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="mcp-group" target="fhir">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- IoT Simulator -->
+        <mxCell id="iot" value="&lt;b&gt;IoT Simulator&lt;/b&gt;&lt;br&gt;Port 8004&lt;br&gt;Medical Device Simulation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffcc;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="300" width="170" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow: IoT to Backend -->
+        <mxCell id="arrow-iot" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;strokeWidth=2;" edge="1" parent="1" source="iot" target="backend-group">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow-iot-label" value="Vital Signs Data" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#82b366;" vertex="1" connectable="0" parent="arrow-iot">
+          <mxGeometry x="-0.1" relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="&lt;b&gt;Legend&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#333333;verticalAlign=top;fontSize=11;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="430" width="180" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="Frontend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1265" y="460" width="70" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="Backend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1265" y="495" width="70" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3" value="AI/Agents" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1265" y="530" width="70" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4" value="Data" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1265" y="565" width="70" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg5" value="MCP/Tools" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1265" y="600" width="70" height="25" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="data-flow" name="Data Flow">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="1">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="df-title" value="&lt;b&gt;Clinical Assessment Data Flow&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontColor=#0077B6;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="400" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 1 -->
+        <mxCell id="step1" value="&lt;b&gt;1. DATA INGESTION&lt;/b&gt;&lt;br&gt;&lt;br&gt;IoT devices send vitals&lt;br&gt;(HR, BP, SpO2, Temp)&lt;br&gt;↓&lt;br&gt;Backend stores in DB&lt;br&gt;↓&lt;br&gt;Syncs to FHIR Server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="100" width="200" height="160" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 2 -->
+        <mxCell id="step2" value="&lt;b&gt;2. AI ASSESSMENT&lt;/b&gt;&lt;br&gt;&lt;br&gt;Orchestrator receives request&lt;br&gt;↓&lt;br&gt;Queries MCP servers&lt;br&gt;(FHIR, Labs, RAG, Pharmacy)&lt;br&gt;↓&lt;br&gt;Enriches patient context" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="300" y="100" width="220" height="160" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 3 -->
+        <mxCell id="step3" value="&lt;b&gt;3. MULTI-AGENT ANALYSIS&lt;/b&gt;&lt;br&gt;&lt;br&gt;Supervisor delegates to&lt;br&gt;specialist agents&lt;br&gt;↓&lt;br&gt;Each agent analyzes with&lt;br&gt;domain expertise&lt;br&gt;↓&lt;br&gt;Results consolidated" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="570" y="100" width="220" height="160" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 4 -->
+        <mxCell id="step4" value="&lt;b&gt;4. PHYSICIAN REVIEW&lt;/b&gt;&lt;br&gt;&lt;br&gt;Doctor reviews assessment&lt;br&gt;on dashboard&lt;br&gt;↓&lt;br&gt;Approves, modifies, or&lt;br&gt;rejects recommendations&lt;br&gt;↓&lt;br&gt;Digital signature applied" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="840" y="100" width="220" height="160" as="geometry"/>
+        </mxCell>
+
+        <!-- Step 5 -->
+        <mxCell id="step5" value="&lt;b&gt;5. ORDER EXECUTION&lt;/b&gt;&lt;br&gt;&lt;br&gt;Approved recommendations&lt;br&gt;become EHR orders&lt;br&gt;↓&lt;br&gt;FHIR writeback for&lt;br&gt;interoperability&lt;br&gt;↓&lt;br&gt;Audit trail recorded" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="100" width="220" height="160" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="dfa1" style="strokeColor=#333;strokeWidth=2;" edge="1" parent="1" source="step1" target="step2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="dfa2" style="strokeColor=#333;strokeWidth=2;" edge="1" parent="1" source="step2" target="step3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="dfa3" style="strokeColor=#333;strokeWidth=2;" edge="1" parent="1" source="step3" target="step4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="dfa4" style="strokeColor=#333;strokeWidth=2;" edge="1" parent="1" source="step4" target="step5"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Bottom: Agent Details -->
+        <mxCell id="agents-detail" value="&lt;b&gt;AI Agent Specializations&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontSize=13;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="50" y="350" width="1280" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="ad1" value="&lt;b&gt;Diagnostician&lt;/b&gt;&lt;br&gt;Differential Dx&lt;br&gt;Confidence Scoring" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="70" y="385" width="115" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="ad2" value="&lt;b&gt;Treatment&lt;/b&gt;&lt;br&gt;Care Plans&lt;br&gt;Dosing Guidance" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="205" y="385" width="115" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="ad3" value="&lt;b&gt;Safety&lt;/b&gt;&lt;br&gt;Drug Interactions&lt;br&gt;Allergy Checks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="340" y="385" width="115" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="ad4" value="&lt;b&gt;Coding&lt;/b&gt;&lt;br&gt;ICD-10 Codes&lt;br&gt;CPT Codes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="475" y="385" width="115" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="ad5" value="&lt;b&gt;Cardiology&lt;/b&gt;&lt;br&gt;ECG Analysis&lt;br&gt;Cardiac Risk" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="610" y="385" width="115" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="ad6" value="&lt;b&gt;Radiology&lt;/b&gt;&lt;br&gt;Imaging Review&lt;br&gt;Finding Reports" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="745" y="385" width="115" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="ad7" value="&lt;b&gt;Pathology&lt;/b&gt;&lt;br&gt;Lab Interpretation&lt;br&gt;Result Trending" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="880" y="385" width="115" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="ad8" value="&lt;b&gt;Oncology&lt;/b&gt;&lt;br&gt;Tumor Markers&lt;br&gt;Cancer Screening" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1015" y="385" width="115" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="ad9" value="&lt;b&gt;Gastroenterology&lt;/b&gt;&lt;br&gt;GI Procedures&lt;br&gt;GI Analysis" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="385" width="125" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Technology Stack -->
+        <mxCell id="tech-title" value="&lt;b&gt;Technology Stack&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#333333;verticalAlign=top;fontSize=13;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="50" y="530" width="1280" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="t1" value="&lt;b&gt;Frontend&lt;/b&gt;&lt;br&gt;React 19 · TypeScript&lt;br&gt;Vite · TanStack Query&lt;br&gt;Recharts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="560" width="180" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="t2" value="&lt;b&gt;Backend&lt;/b&gt;&lt;br&gt;Django 5.0 · DRF&lt;br&gt;Celery · Redis&lt;br&gt;PostgreSQL 16" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="290" y="560" width="180" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="t3" value="&lt;b&gt;AI / ML&lt;/b&gt;&lt;br&gt;Claude (Anthropic)&lt;br&gt;LangGraph · ChromaDB&lt;br&gt;Sentence-Transformers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="510" y="560" width="190" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="t4" value="&lt;b&gt;Interoperability&lt;/b&gt;&lt;br&gt;HAPI FHIR R4&lt;br&gt;Model Context Protocol&lt;br&gt;HL7 Standards" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="560" width="180" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="t5" value="&lt;b&gt;Infrastructure&lt;/b&gt;&lt;br&gt;Docker Compose&lt;br&gt;FastAPI · Nginx&lt;br&gt;SSL/TLS · JWT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="960" y="560" width="180" height="65" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="deployment" name="Deployment Architecture">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="1">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="dep-title" value="&lt;b&gt;Docker Compose Deployment — 14 Services&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontColor=#0077B6;" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="500" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Docker Network -->
+        <mxCell id="network" value="&lt;b&gt;Docker Network: healthnet&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#333;strokeWidth=2;verticalAlign=top;fontSize=14;dashed=1;dashPattern=5 5;arcSize=5;" vertex="1" parent="1">
+          <mxGeometry x="30" y="70" width="1340" height="800" as="geometry"/>
+        </mxCell>
+
+        <!-- Frontend -->
+        <mxCell id="d-fe" value="&lt;b&gt;clinician-ui&lt;/b&gt;&lt;br&gt;React + Nginx&lt;br&gt;3030:443 / 2080:80" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="550" y="100" width="180" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Backend Services -->
+        <mxCell id="d-be" value="&lt;b&gt;backend&lt;/b&gt;&lt;br&gt;Django 5.0&lt;br&gt;8000:8000" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="350" y="220" width="150" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="d-worker" value="&lt;b&gt;worker&lt;/b&gt;&lt;br&gt;Celery Worker" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="550" y="220" width="150" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Orchestrator -->
+        <mxCell id="d-orch" value="&lt;b&gt;orchestrator&lt;/b&gt;&lt;br&gt;FastAPI + LangGraph&lt;br&gt;8003:8003" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="780" y="220" width="180" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- IoT -->
+        <mxCell id="d-iot" value="&lt;b&gt;iot-simulator&lt;/b&gt;&lt;br&gt;FastAPI&lt;br&gt;8004:8004" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffcc;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="220" width="150" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Databases -->
+        <mxCell id="d-pg" value="&lt;b&gt;db&lt;/b&gt;&lt;br&gt;PostgreSQL 16&lt;br&gt;+ pgvector&lt;br&gt;5432:5432" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="210" width="130" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="d-redis" value="&lt;b&gt;redis&lt;/b&gt;&lt;br&gt;6379:6379" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="320" width="130" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- MCP Servers -->
+        <mxCell id="d-mcp-fhir" value="&lt;b&gt;mcp-fhir-server&lt;/b&gt;&lt;br&gt;8005:8005" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="250" y="380" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="d-mcp-labs" value="&lt;b&gt;mcp-labs-server&lt;/b&gt;&lt;br&gt;8006:8006" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="430" y="380" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="d-mcp-rag" value="&lt;b&gt;mcp-rag-server&lt;/b&gt;&lt;br&gt;8007:8007" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="610" y="380" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="d-mcp-pharma" value="&lt;b&gt;mcp-pharmacy-server&lt;/b&gt;&lt;br&gt;8008:8008" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="790" y="380" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="d-mcp-adapter" value="&lt;b&gt;mcp-fhir-adapter&lt;/b&gt;&lt;br&gt;8002:8002" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="980" y="380" width="150" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ChromaDB -->
+        <mxCell id="d-chroma" value="&lt;b&gt;chromadb&lt;/b&gt;&lt;br&gt;8009:8000" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="370" width="120" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- HAPI FHIR -->
+        <mxCell id="d-fhir" value="&lt;b&gt;hapi-fhir&lt;/b&gt;&lt;br&gt;FHIR R4 Server&lt;br&gt;18090:8080" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="530" y="500" width="200" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Connections -->
+        <mxCell id="dc1" style="strokeColor=#6c8ebf;strokeWidth=1;" edge="1" parent="1" source="d-fe" target="d-be"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="dc2" style="strokeColor=#82b366;strokeWidth=1;" edge="1" parent="1" source="d-be" target="d-pg"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="dc3" style="strokeColor=#82b366;strokeWidth=1;" edge="1" parent="1" source="d-worker" target="d-redis"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="dc4" style="strokeColor=#d6b656;strokeWidth=1;" edge="1" parent="1" source="d-orch" target="d-mcp-fhir"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="dc5" style="strokeColor=#d6b656;strokeWidth=1;" edge="1" parent="1" source="d-orch" target="d-mcp-labs"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="dc6" style="strokeColor=#d6b656;strokeWidth=1;" edge="1" parent="1" source="d-orch" target="d-mcp-rag"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="dc7" style="strokeColor=#d6b656;strokeWidth=1;" edge="1" parent="1" source="d-orch" target="d-mcp-pharma"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="dc8" style="strokeColor=#d79b00;strokeWidth=1;" edge="1" parent="1" source="d-mcp-adapter" target="d-fhir"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="dc9" style="strokeColor=#d79b00;strokeWidth=1;" edge="1" parent="1" source="d-mcp-fhir" target="d-fhir"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="dc10" style="strokeColor=#82b366;strokeWidth=1;" edge="1" parent="1" source="d-iot" target="d-be"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="dc11" style="strokeColor=#9673a6;strokeWidth=1;" edge="1" parent="1" source="d-mcp-rag" target="d-chroma"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
